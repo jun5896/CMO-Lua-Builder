@@ -1,0 +1,1 @@
+ChangeScore('Soviet Union',250,'B-402 reached the minelaying area.')

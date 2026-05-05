@@ -1,0 +1,48 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# CMO extract cache and temporary files
+.scenario-extract-cache/
+*.tmp
+*~
+*.bak
+
+# Generated CMO scenario sidecars are local-machine specific and can be rebuilt.
+scenario-sidecars/
+public/scenario-scan-samples/*.json
+public/scenario-scan-samples/*.summary.json
+public/scenario-scan-samples/*.scenario.xml
+public/cmo-db-assets-index.json
+
+# Large real-scenario fixture snapshots are regenerated on demand.
+fixtures/scenario-summary-samples/*.json
+fixtures/iran-strike-xml-node-index.json
+
+# Local caches
+.cache/
+
+# AI Adapter local secrets and runtime settings
+server/.env
+server/.cmo-ai-settings.json

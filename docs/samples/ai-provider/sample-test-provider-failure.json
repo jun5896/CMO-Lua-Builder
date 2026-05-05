@@ -1,0 +1,8 @@
+{
+  "_comment": "Failure case from /api/ai/test-provider. Possible reasons: bad baseUrl, network down, auth rejected. The adapter never echoes the API key, headers, or upstream response body.",
+  "ok": false,
+  "providerType": "openai-compatible",
+  "baseUrl": "http://127.0.0.1:1",
+  "errorCode": null,
+  "errorMessage": "fetch failed"
+}

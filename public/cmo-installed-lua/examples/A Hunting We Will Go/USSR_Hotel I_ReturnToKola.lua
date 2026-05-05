@@ -1,0 +1,1 @@
+ScenEdit_AssignUnitToMission('32e444e7-dcfc-4b6d-80d8-81169f2c47c4', 'SSBN Kola Transit') -- Hotel I SSBN Group

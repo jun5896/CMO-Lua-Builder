@@ -1,0 +1,235 @@
+.ai-response-diagnostics {
+  display: grid;
+  gap: 0.6rem;
+  margin: 0.6rem 0;
+}
+
+.ai-response-loading {
+  padding: 0.7rem 0.8rem;
+  border: 1px solid rgba(112, 210, 247, 0.16);
+  border-radius: 14px;
+  color: var(--muted);
+  background: rgba(3, 12, 14, 0.45);
+  font-size: 0.74rem;
+}
+
+.ai-lua-ready-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.62rem 0.72rem;
+  border: 1px solid rgba(240, 184, 74, 0.34);
+  border-radius: 15px;
+  background: rgba(240, 184, 74, 0.08);
+}
+
+.ai-lua-ready-card.ok {
+  border-color: rgba(72, 214, 188, 0.32);
+  background: rgba(72, 214, 188, 0.08);
+}
+
+.ai-lua-ready-card strong,
+.ai-lua-ready-card span {
+  display: block;
+}
+
+.ai-lua-ready-actions {
+  display: flex;
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.4rem;
+}
+
+.ai-lua-ready-card strong {
+  color: var(--text);
+  font-size: 0.78rem;
+}
+
+.ai-lua-ready-card span {
+  margin-top: 0.12rem;
+  color: var(--muted);
+  font-size: 0.72rem;
+  line-height: 1.4;
+}
+
+.ai-response-diagnostic-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.45rem;
+}
+
+.ai-response-diagnostic {
+  min-width: 0;
+  padding: 0.52rem 0.6rem;
+  border: 1px solid rgba(112, 210, 247, 0.18);
+  border-radius: 14px;
+  background: rgba(3, 12, 14, 0.52);
+  text-align: center;
+}
+
+.ai-response-diagnostic strong,
+.ai-response-diagnostic small {
+  display: block;
+}
+
+.ai-response-diagnostic strong {
+  color: var(--text);
+  font-size: 0.9rem;
+}
+
+.ai-response-diagnostic small {
+  color: var(--muted);
+  font-size: 0.62rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.ai-response-diagnostic.ok {
+  border-color: rgba(72, 214, 188, 0.26);
+}
+
+.ai-response-diagnostic.warning {
+  border-color: rgba(240, 184, 74, 0.34);
+}
+
+.ai-response-diagnostic.error {
+  border-color: rgba(255, 118, 118, 0.38);
+}
+
+.ai-pruning-audit-card {
+  display: grid;
+  gap: 0.5rem;
+  padding: 0.58rem 0.66rem;
+  border: 1px solid rgba(72, 214, 188, 0.2);
+  border-radius: 15px;
+  background: rgba(72, 214, 188, 0.055);
+}
+
+.ai-pruning-audit-card.warning {
+  border-color: rgba(240, 184, 74, 0.34);
+  background: rgba(240, 184, 74, 0.07);
+}
+
+.ai-pruning-audit-card strong,
+.ai-pruning-audit-card span,
+.ai-pruning-audit-card p {
+  display: block;
+}
+
+.ai-pruning-audit-card strong {
+  color: var(--accent-2);
+  font-size: 0.75rem;
+}
+
+.ai-pruning-audit-card > div > span,
+.ai-pruning-audit-card p {
+  margin: 0.12rem 0 0;
+  color: var(--muted);
+  font-size: 0.67rem;
+  line-height: 1.38;
+}
+
+.ai-pruning-audit-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.4rem;
+}
+
+.ai-pruning-audit-grid span {
+  min-width: 0;
+  padding: 0.42rem 0.48rem;
+  border: 1px solid rgba(112, 210, 247, 0.14);
+  border-radius: 12px;
+  background: rgba(3, 12, 14, 0.42);
+}
+
+.ai-pruning-audit-grid b,
+.ai-pruning-audit-grid small {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ai-pruning-audit-grid b {
+  color: var(--text);
+  font-family: 'IBM Plex Mono', Consolas, monospace;
+  font-size: 0.68rem;
+}
+
+.ai-pruning-audit-grid small {
+  margin-top: 0.1rem;
+  color: var(--muted);
+  font-size: 0.58rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.ai-response-diagnostic-details {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.ai-response-diagnostic-details details {
+  padding: 0.55rem 0.65rem;
+  border: 1px solid rgba(112, 210, 247, 0.16);
+  border-radius: 14px;
+  background: rgba(4, 12, 15, 0.5);
+}
+
+.ai-response-diagnostic-details summary {
+  cursor: pointer;
+  color: var(--text);
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+
+.ai-response-diagnostic-details ul {
+  margin: 0.45rem 0 0;
+  padding-left: 1rem;
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+
+.ai-response-section-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.55rem;
+}
+
+.ai-response-section-card {
+  min-width: 0;
+  padding: 0.66rem 0.72rem;
+  border: 1px solid rgba(112, 210, 247, 0.16);
+  border-radius: 15px;
+  background: rgba(3, 12, 14, 0.44);
+}
+
+.ai-response-section-card strong {
+  display: block;
+  color: var(--accent-2);
+  font-size: 0.76rem;
+}
+
+.ai-response-section-card p {
+  margin: 0.18rem 0 0.46rem;
+  color: var(--muted);
+  font-size: 0.68rem;
+  line-height: 1.38;
+}
+
+.ai-response-section-card ul {
+  margin: 0;
+  padding-left: 1rem;
+  color: var(--text);
+  font-size: 0.72rem;
+  line-height: 1.48;
+}
+
+.ai-response-section-card span {
+  display: block;
+  color: var(--muted);
+  font-size: 0.72rem;
+}

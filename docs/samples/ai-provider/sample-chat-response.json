@@ -1,0 +1,24 @@
+{
+  "_comment": "Successful response from /api/ai/chat. The adapter forwards the upstream provider's response under `response`, plus context fields. NEVER includes the API key.",
+  "ok": true,
+  "providerType": "openai-compatible",
+  "baseUrl": "https://api.openai.com",
+  "model": "gpt-4o-mini",
+  "response": {
+    "id": "chatcmpl-...",
+    "object": "chat.completion",
+    "created": 1746230400,
+    "model": "gpt-4o-mini",
+    "choices": [
+      {
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "ScenEdit_SpecialMessage(ScenEdit_PlayerSide(), 'hello')"
+        },
+        "finish_reason": "stop"
+      }
+    ],
+    "usage": { "prompt_tokens": 32, "completion_tokens": 14, "total_tokens": 46 }
+  }
+}

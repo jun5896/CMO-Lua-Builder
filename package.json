@@ -1,0 +1,47 @@
+{
+  "name": "cmo-lua-ui",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "lint": "eslint .",
+    "preview": "vite preview",
+    "sync:cmo-examples": "node tools/sync-cmo-lua-examples.mjs",
+    "scan:scenario": "node tools/scan-cmo-scenario-folder.mjs",
+    "prepare:scenario": "node tools/prepare-cmo-scenario-sidecar.mjs",
+    "prepare:scenario-batch": "node tools/prepare-cmo-scenario-batch.mjs",
+    "prune:scenario-xml": "node tools/prune-cmo-scenario-xml-sidecars.mjs",
+    "audit:scenario-sidecars": "node tools/prune-cmo-scenario-sidecar-cache.mjs",
+    "prune:scenario-sidecars": "node tools/prune-cmo-scenario-sidecar-cache.mjs --prune-orphans",
+    "move:scenario-sidecars": "node tools/move-cmo-scenario-sidecar-root.mjs",
+    "audit:scenario-openability": "node tools/audit-cmo-scenario-openability.mjs",
+    "verify:scenario-loader": "node tools/verify-cmo-scenario-loader.mjs",
+    "audit:cmo-db": "node tools/audit-cmo-db-assets.mjs",
+    "refresh:cmo-assets": "npm run audit:cmo-db && npm run audit:scenario-openability",
+    "extract:scenario-xml": "powershell -NoProfile -ExecutionPolicy Bypass -File tools/extract-cmo-scenario-xml.ps1",
+    "summarize:scenario": "node tools/summarize-cmo-scenario-xml.mjs",
+    "start:ai-adapter": "node server/ai-provider-adapter.mjs",
+    "smoke:ai-adapter": "node server/verify-upstream-redaction.mjs",
+    "smoke:scenario-transient": "node server/verify-transient-scenario-open.mjs"
+  },
+  "dependencies": {
+    "leaflet": "^1.9.4",
+    "lucide-react": "^1.14.0",
+    "react": "^19.2.5",
+    "react-dom": "^19.2.5",
+    "react-leaflet": "^5.0.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.1",
+    "eslint": "^10.2.1",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "eslint-plugin-react-refresh": "^0.5.2",
+    "globals": "^17.5.0",
+    "vite": "^8.0.10"
+  }
+}

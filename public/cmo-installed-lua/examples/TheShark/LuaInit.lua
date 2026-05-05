@@ -1,0 +1,315 @@
+scenarioScriptFilePath = '/TheShark/'
+
+function RunScript(fileName)
+	local scriptFilePath = scenarioScriptFilePath..fileName..'.lua'
+	print ('Attempting to execute '..scriptFilePath)
+	if ScenEdit_RunScript(scriptFilePath) then
+		print ('Success!')
+	end
+end
+
+function LuaReset()
+	print ('Resetting...')
+	ScenEdit_ClearKeyValue("")
+	print ('KeyValues cleared.')
+	RunScript('LuaInit')
+end
+
+function ConvertStringToBoolean(stringName)
+	local stringName = string.upper(stringName)
+	local result = false
+	if stringName == 'TRUE' then
+		result = true
+	end
+	return result
+end
+
+function IsBetaVersion(booleanValue)
+	if booleanValue == true then
+		ScenEdit_SetKeyValue('betaVersion','true')
+		return true
+	elseif booleanValue == false then
+		ScenEdit_SetKeyValue('betaVersion','false')
+		return false
+	else
+		local betaStatus = ScenEdit_GetKeyValue('betaVersion')
+		local result = ConvertStringToBoolean(betaStatus)
+		return result
+	end
+end
+
+IsBetaVersion(true) --------------------------------------------------REMOVE BEFORE RELEASE
+scenarioZuluOffset = 5 ----------CHANGE PER SCENARIO
+
+function Round(num, numDecimalPlaces)
+  local mult = 10^(numDecimalPlaces or 0)
+  return math.floor(num * mult + 0.5) / mult
+end
+
+function DebugModeIsOn(booleanValue)
+	if booleanValue == true then
+		ScenEdit_SetKeyValue('debugMode','true')
+		return true
+	elseif booleanValue == false then
+		ScenEdit_SetKeyValue('debugMode','false')
+		return false
+	else
+		local debugStatus = ScenEdit_GetKeyValue('debugMode')
+		local result = ConvertStringToBoolean(debugStatus)
+		return result
+	end
+end
+
+function RandomPosition(latitudeMin,latitudeMax,longitudeMin,longitudeMax)
+	local lat_var = math.random(1,(10^13)) --random number between 1 and 10^13
+	local lon_var = math.random(1,(10^13)) --random number between 1 and 10^13
+	local pos_lat = math.random(latitudeMin,latitudeMax) + (lat_var/(10^13)) --latitude; 
+	local pos_lon = math.random(longitudeMin,longitudeMax) + (lon_var/(10^13)) --longitude; 
+	return {latitude=pos_lat,longitude=pos_lon}
+end
+
+function CircularRandomPosition(x_latitude, x_longitude, max_radius)
+	local randomisationCircle = World_GetCircleFromPoint({
+		latitude=x_latitude,
+		longitude=x_longitude,
+		radius=math.random(0.1,max_radius),
+		numpoints = 72})
+	local randomisedPoint = randomisationCircle[math.random(1,#randomisationCircle)]
+    return randomisedPoint
+end
+
+function ChangeScore(side,amt,reason)
+	local newScore = ScenEdit_GetScore(side) + amt
+	ScenEdit_SetScore(side,newScore,reason)
+	print (side..' score changed to '..newScore)
+	return newScore
+end
+
+function WeatherDrift()
+	local weatherBaseline = { rainfall = 0, undercloud = 0.1, seastate = 3, temp = 19 }
+	local seastateVariability = math.random(-1,1)
+	local undercloudVariability = 0
+	local tempVariability = math.random(0,2)
+	local rainfallVariability = 0
+
+	local newTemp =  weatherBaseline.temp + tempVariability
+	local newRainfall = weatherBaseline.rainfall + rainfallVariability
+	local newUndercloud = weatherBaseline.undercloud + undercloudVariability
+	local newSeastate = weatherBaseline.seastate + seastateVariability
+
+	ScenEdit_SetWeather(
+		newTemp, --temp
+		newRainfall, --rainfall
+		newUndercloud, --undercloud
+		newSeastate --seastate
+	)
+end
+
+function BugMessage(eventName,description)
+	if IsBetaVersion() then
+		ScenEdit_MsgBox('An issue occured with '..eventName..';\n'..description..'\n\nThis will not affect system stability but may affect scenario balance. \n\nPlease report this in the Beta Testing Forum. \n\nThanks!', 0)
+	else
+		ScenEdit_MsgBox('An issue occured with '..eventName..';\n'..description..'\n\nThis will not affect system stability but may affect scenario balance. \n\nPlease report this in the Tech Support subforum on the Matrix Games forum, including a screenshot of this message. \n\nhttp://www.matrixgames.com/forums/tt.asp?forumid=1279', 0)
+	end
+end
+
+function OverWater (latitude, longitude)
+	local pointElevation = World_GetElevation({
+		latitude = latitude,
+		longitude = longitude})
+	if pointElevation < 0 then
+		return true
+	else
+		return false
+	end
+end
+
+function RegisterMessage(messageString)
+	local counter = 0
+	for int1 = 1, 10 do
+		local storedMessage = ScenEdit_GetKeyValue('storedMessage_'..int1)
+		if storedMessage ~= nil then
+			counter = counter + 1
+		end
+	end
+	
+	if counter == 10 then
+		for int2 = 1, 10 do
+			local shiftedMessage = ScenEdit_GetKeyValue('storedMessage_'..int2)
+			local shiftedMessageSlot = int2 - 1
+			ScenEdit_SetKeyValue('storedMessage_'..shiftedMessageSlot,shiftedMessage)
+		end
+		messageNumber = 10
+	elseif counter <= 9 then
+		messageNumber = counter + 1
+	elseif counter == 0 then
+		messageNumber = 1
+	end
+	ScenEdit_SetKeyValue('storedMessage_'..messageNumber,messageString)	
+end
+
+function ReplayMessages()
+	for i = 10,1,-1 do
+		local message = ScenEdit_GetKeyValue('storedMessage_'..i)
+		if message ~= nil and message ~= '' then
+			ScenEdit_SpecialMessage('playerside',message)
+		end
+	end
+end
+
+function DTGNonAligned(TimeVar)
+    if TimeVar == nil then 
+    TimeVar = ScenEdit_CurrentTime()
+    end
+    msgtime = os.date("!%H%M" .. "UTC" .. " " .. "%d %b %Y", TimeVar)
+    msgtime = string.upper(msgtime)
+    return msgtime
+end
+
+function NonAlignedSignal(recipient,sender,subject,classification,precedence,body)
+    local msg_time = DTGNonAligned()
+	local signal_string = string.upper(
+		'<P>'.. precedence.. '\\'..'\\ <BR>' .. 
+		'FROM: '..sender..' <BR>' .. 
+		'TO: '..recipient..' <BR>' ..
+		'SUBJ: '..subject..' <BR>' .. 
+		msg_time .. ' <BR>' ..
+		classification .. '</P>' ..
+		'<P>'..body.. '</P>' ..
+		'<P>'..'\\'..'\\'..precedence..'</P>'
+	)
+	return signal_string
+end
+
+function GenerateRainDescriptor(rain)
+	local result 
+	if rain == 0 then  result = 'nil'
+		elseif rain < 5 then  result = 'very light'
+		elseif rain < 11 then  result = 'light'
+		elseif rain < 20 then  result = 'moderate'
+		elseif rain < 30 then  result = 'heavy'
+		elseif rain < 40 then  result = 'very heavy'
+		else  result = 'extreme'
+	end
+	return result
+end
+
+function GenerateCloudDescriptor(cloud)
+	local result
+	if cloud == 0 then  result = 'clear skies'
+		elseif cloud < 0.2 then result = 'light low clouds'
+		elseif cloud < 0.3 then result = 'light middle clouds'
+		elseif cloud < 0.4 then result = 'light high clouds'
+		elseif cloud < 0.5 then result = 'moderate low clouds'
+		elseif cloud < 0.6 then result = 'moderate middle clouds'
+		elseif cloud < 0.7 then result = 'moderate high clouds'
+		elseif cloud < 0.8 then result = 'moderate middle clouds & light high clouds'
+		elseif cloud < 0.9 then result = 'solid middle clouds & moderate high clouds'
+		elseif cloud < 1.0 then result = 'thin fog & solid cloud cover'
+		else result = 'thick fog & solid cloud cover'
+	end
+	return result
+end
+
+function ConvertTempCtoF(temp)
+	local result = Round((temp*1.8) + 32,0)
+	return result
+end
+
+function WeatherReport(outlook)
+	if outlook == nil then outlook = 'next forecast at '..DTGNonAligned(ScenEdit_CurrentTime()+21600) end
+
+	local weather, DTG = ScenEdit_GetWeather(), DTGNonAligned()
+	local tempC, tempF, cloud, rain, sea = weather.temp, ConvertTempCtoF(weather.temp), GenerateCloudDescriptor(weather.undercloud), GenerateRainDescriptor(weather.rainfall), weather.seastate
+
+	local theMessage = NonAlignedSignal(
+		'ALL', --recipient
+		'METOPS', --sender
+		'WX REPORT - GULF OF ARABIA', --subject
+        'UNCLASSIFIED', --classification
+		'ROUTINE', --precedence
+		'AVERAGE TEMP '.. tempC ..'°C / '..tempF..'°F <BR> SEA STATE '.. sea ..' <BR>'..rain..' PRECIPITATION <BR>'..cloud..' <BR>'..outlook)
+
+	ScenEdit_SpecialMessage('playerside',theMessage)
+	RegisterMessage(theMessage)
+end
+
+function JitterPosition(guid,radius)
+	local unit = ScenEdit_GetUnit({guid=guid})
+	local newPos = CircularRandomPosition(unit.latitude,unit.longitude,radius)
+	if OverWater(newPos.latitude,newPos.longitude) then
+		ScenEdit_SetUnit({
+			guid=unit.guid,
+			latitude=newPos.latitude,
+			longitude=newPos.longitude
+		})
+	end
+end
+
+----------TWO SIDED SCENARIO SETUP
+function ThisIsFirstLoad(booleanValue)
+	local result
+	if booleanValue == nil then
+		result = ScenEdit_GetKeyValue('firstLoad')
+		if result == '' or result == nil then result = true end
+		if result == 'false' then result = false end
+	else
+		if booleanValue == true then
+			ScenEdit_ClearKeyValue('firstLoad')
+			result = true
+		elseif booleanValue == false then
+			ScenEdit_SetKeyValue('firstLoad','false')
+			result = false
+		end
+	end
+	return result
+end
+
+function ClearSideReferencePoints(sideName)
+	local sideRPs=VP_GetSide({side=sideName}).rps
+	for k,v in ipairs(sideRPs) do
+		ScenEdit_DeleteReferencePoint({side=sideName,guid=v.guid})
+	end
+end
+
+local function SetupSideAsAI(sideName)
+	ScenEdit_SetSidePosture('Civilian', sideName, 'F')
+	ScenEdit_SetSidePosture('Nature', sideName, 'F')
+	ScenEdit_SetDoctrine({side=sideName}, {
+		weapon_control_status_air = 1,
+		weapon_control_status_surface = 1,
+		weapon_control_status_subsurface = 1,
+		weapon_control_status_land = 1,
+		})
+end
+
+inDevelopment = false
+
+if ThisIsFirstLoad() then
+	math.randomseed(os.time())
+	local playerSide = ScenEdit_PlayerSide()
+	local enemySide = 'India'
+	if playerSide == 'India' then enemySide = 'Pakistan' end
+
+	if inDevelopment then --ask to do stuff
+		local userInput = string.upper(ScenEdit_MsgBox('Clear RPs for '..playerSide..'?',1))
+		if userInput == 'OK' then 
+			ClearSideReferencePoints(playerSide)
+		end
+
+		userInput = string.upper(ScenEdit_MsgBox('Setup '..enemySide..' as AI opponent?',1))
+		if userInput == 'OK' then 
+			SetupSideAsAI(enemySide)
+		end
+
+		userInput = string.upper(ScenEdit_MsgBox('Set firstLoad key value to false?',1))
+		if userInput == 'OK' then 
+			ThisIsFirstLoad(false) 
+		end
+
+	else --don't give the option and just do it
+		ClearSideReferencePoints(playerSide)
+		SetupSideAsAI(enemySide)
+		ThisIsFirstLoad(false) 
+	end	
+end

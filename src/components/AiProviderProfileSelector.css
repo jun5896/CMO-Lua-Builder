@@ -1,0 +1,49 @@
+.ai-readiness-profile-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.ai-readiness-profile-select {
+  display: grid;
+  gap: 0.18rem;
+  min-width: 0;
+}
+
+.ai-readiness-profile-row select {
+  width: min(260px, 24vw);
+  min-width: 180px;
+  padding: 0.34rem 0.55rem;
+  border-radius: 999px;
+  color: var(--text);
+  border: 1px solid rgba(72, 214, 188, 0.22);
+  background: rgba(4, 12, 15, 0.72);
+  font-size: 0.7rem;
+  font-weight: 800;
+}
+
+.ai-readiness-profile-summary {
+  width: min(260px, 24vw);
+  min-width: 180px;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 0.62rem;
+  font-weight: 750;
+  letter-spacing: 0.01em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 900px) {
+  .ai-readiness-profile-row {
+    flex-wrap: wrap;
+    justify-content: flex-start;
+  }
+
+  .ai-readiness-profile-row select,
+  .ai-readiness-profile-summary {
+    width: min(100%, 320px);
+  }
+}
