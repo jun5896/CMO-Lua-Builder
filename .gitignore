@@ -46,3 +46,4 @@ fixtures/iran-strike-xml-node-index.json
 # AI Adapter local secrets and runtime settings
 server/.env
 server/.cmo-ai-settings.json
+server/.cmo-ai-backends.json

@@ -1,23 +1,41 @@
 /**
  * providers.mjs — provider implementations for ai-provider-adapter.mjs
  *
- * Three provider types:
- *   - openai-compatible : OpenAI / OpenRouter / CrofAI / LM Studio (POST /v1/chat/completions, Bearer auth)
- *   - ollama            : Ollama local (POST /api/chat, no auth, different body)
- *   - lm-studio         : alias of openai-compatible (same path/shape; declared
- *                          separately to match the Chatbox UX of "select your provider")
+ * HTTP provider types:
+ *   - openai-compatible    : OpenAI / OpenRouter / xAI Grok / Moonshot Kimi /
+ *                            Zhipu GLM standard API / LM Studio
+ *                            (POST /v1/chat/completions, Bearer auth)
+ *   - anthropic-compatible : Anthropic Messages API shape (POST /v1/messages,
+ *                            x-api-key auth). Used by coding-plan endpoints
+ *                            such as Kimi for Coding (api.moonshot.ai/anthropic)
+ *                            and GLM Coding Plan (api.z.ai/api/anthropic).
+ *                            Responses are normalized to the OpenAI choices
+ *                            shape so the client parser stays unchanged.
+ *   - ollama               : Ollama local (POST /api/chat, no auth)
+ *   - lm-studio            : alias of openai-compatible
+ *
+ * CLI provider types (implemented in cli-providers.mjs, dispatched here):
+ *   - claude-cli / codex-cli / cursor-cli — subscription CLIs in one-shot
+ *     headless mode; account/profile selected via cfg.cliHome.
  *
  * Design:
- *   - Pure async functions, no I/O outside the explicit fetch.
+ *   - HTTP paths stay pure (no I/O outside the explicit fetch); CLI paths are
+ *     isolated in cli-providers.mjs.
  *   - Never log or return the API key.
  *   - On non-2xx responses, return { ok: false, status, body } with status from
  *     the upstream so the UI can decide what to do.
  */
 
+import { CLI_PROVIDER_TYPES, callCliProvider, isCliProviderType } from './cli-providers.mjs';
+
+export { isCliProviderType } from './cli-providers.mjs';
+
 export const PROVIDER_TYPES = new Set([
   'openai-compatible',
+  'anthropic-compatible',
   'ollama',
   'lm-studio',
+  ...CLI_PROVIDER_TYPES,
 ]);
 
 const DEFAULT_TIMEOUT_MS = 60_000;
@@ -148,6 +166,73 @@ async function callOpenAICompatible(cfg) {
 }
 
 // -----------------------------------------------------------------------------
+// anthropic-compatible (Kimi for Coding, GLM Coding Plan, Anthropic itself)
+// -----------------------------------------------------------------------------
+
+export function buildAnthropicRequestBody(cfg) {
+  const system = [];
+  const messages = [];
+
+  for (const message of cfg.messages || []) {
+    if (message.role === 'system') {
+      system.push(String(message.content || ''));
+    } else {
+      messages.push({ role: message.role, content: String(message.content || '') });
+    }
+  }
+
+  const body = {
+    model: cfg.model,
+    // The Messages API requires max_tokens even in provider-default mode.
+    max_tokens: cfg.generationMode !== 'provider-default' && Number.isFinite(cfg.maxTokens)
+      ? cfg.maxTokens
+      : 4096,
+    messages,
+  };
+  if (system.length) body.system = system.join('\n\n');
+  if (cfg.generationMode !== 'provider-default') body.temperature = cfg.temperature;
+  return body;
+}
+
+export function normalizeAnthropicResponse(parsed) {
+  const text = Array.isArray(parsed?.content)
+    ? parsed.content.filter((block) => block?.type === 'text').map((block) => block.text || '').join('')
+    : '';
+
+  return {
+    model: parsed?.model || '',
+    choices: [{
+      index: 0,
+      message: { role: 'assistant', content: text },
+      finish_reason: parsed?.stop_reason || null,
+    }],
+    usage: {
+      prompt_tokens: parsed?.usage?.input_tokens ?? null,
+      completion_tokens: parsed?.usage?.output_tokens ?? null,
+    },
+  };
+}
+
+async function callAnthropicCompatible(cfg) {
+  const url = joinUrl(cfg.baseUrl, '/v1/messages');
+  const headers = {
+    'Content-Type': 'application/json',
+    'anthropic-version': '2023-06-01',
+  };
+  if (cfg.apiKey) headers['x-api-key'] = cfg.apiKey;
+
+  const res = await timedFetch(url, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify(buildAnthropicRequestBody(cfg)),
+  });
+  const text = await res.text();
+  let parsed;
+  try { parsed = JSON.parse(text); } catch { parsed = { raw: text.slice(0, 4096) }; }
+  return wrapUpstreamResponse(res, res.ok ? normalizeAnthropicResponse(parsed) : parsed, cfg);
+}
+
+// -----------------------------------------------------------------------------
 // ollama
 // -----------------------------------------------------------------------------
 
@@ -184,10 +269,15 @@ async function callOllama(cfg) {
 // -----------------------------------------------------------------------------
 
 export async function callProvider(cfg) {
+  if (isCliProviderType(cfg.providerType)) {
+    return callCliProvider(cfg);
+  }
   switch (cfg.providerType) {
     case 'openai-compatible':
     case 'lm-studio':
       return callOpenAICompatible(cfg);
+    case 'anthropic-compatible':
+      return callAnthropicCompatible(cfg);
     case 'ollama':
       return callOllama(cfg);
     default:
@@ -241,6 +331,13 @@ export async function listProviderModels(cfg) {
       return listOpenAICompatibleModels(cfg);
     case 'ollama':
       return listOllamaModels(cfg);
+    case 'anthropic-compatible':
+    case 'claude-cli':
+    case 'codex-cli':
+    case 'cursor-cli':
+      // No discovery endpoint; the backends scanner supplies curated model
+      // lists for these types.
+      return { status: 200, body: { ok: true, providerType: cfg.providerType, baseUrl: cfg.baseUrl || '', models: [] } };
     default:
       throw new Error(`Unknown providerType: ${cfg.providerType}`);
   }
@@ -253,6 +350,20 @@ export async function listProviderModels(cfg) {
  *   - ollama: GET /api/tags
  */
 export async function testProvider(cfg) {
+  if (isCliProviderType(cfg.providerType)) {
+    const { resolveCliExecutable } = await import('./cli-providers.mjs');
+    const commandByType = { 'claude-cli': 'claude', 'codex-cli': 'codex', 'cursor-cli': 'cursor-agent' };
+    const executable = resolveCliExecutable(commandByType[cfg.providerType]);
+    return {
+      ok: Boolean(executable),
+      status: executable ? 200 : 404,
+      providerType: cfg.providerType,
+      baseUrl: '',
+      reached: Boolean(executable),
+      ...(executable ? {} : { errorMessage: `${commandByType[cfg.providerType]} CLI not found on PATH` }),
+    };
+  }
+
   let url, init;
   switch (cfg.providerType) {
     case 'openai-compatible':
@@ -261,6 +372,19 @@ export async function testProvider(cfg) {
       const headers = { 'Accept': 'application/json' };
       if (cfg.apiKey) headers['Authorization'] = `Bearer ${cfg.apiKey}`;
       init = { method: 'GET', headers };
+      break;
+    }
+    case 'anthropic-compatible': {
+      // The Messages API has no GET ping; POST a 1-token request instead.
+      // 2xx = ok; auth/model/network failures surface as ok:false.
+      url = joinUrl(cfg.baseUrl, '/v1/messages');
+      const headers = { 'Content-Type': 'application/json', 'anthropic-version': '2023-06-01' };
+      if (cfg.apiKey) headers['x-api-key'] = cfg.apiKey;
+      init = {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ model: cfg.model || 'ping', max_tokens: 1, messages: [{ role: 'user', content: 'ping' }] }),
+      };
       break;
     }
     case 'ollama': {

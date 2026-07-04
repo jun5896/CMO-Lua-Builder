@@ -62,6 +62,7 @@ import {
 import {
   PROVIDER_TYPES,
   callProvider,
+  isCliProviderType,
   listProviderModels,
   testProvider,
 } from './providers.mjs';
@@ -100,10 +101,35 @@ const config = {
   baseUrl:      process.env.AI_PROVIDER_BASE_URL || '',
   apiKey:       process.env.AI_PROVIDER_API_KEY || '',
   model:        process.env.AI_PROVIDER_MODEL || '',
+  cliHome:      '',
+  backendId:    '',
   generationMode: process.env.AI_PROVIDER_GENERATION_MODE === 'manual' ? 'manual' : 'provider-default',
   temperature:  parseFloatSafe(process.env.AI_PROVIDER_TEMPERATURE, 0.7),
   maxTokens:    parseIntSafe(process.env.AI_PROVIDER_MAX_TOKENS, 1024),
 };
+
+// Backend selection written by tools/scan-ai-backends.mjs (--use). Explicit
+// AI_PROVIDER_* env vars win; the selection fills whatever they left blank.
+// Only the env-var NAME of the API key is stored on disk, never the key.
+(() => {
+  const selectionPath = resolvePath(HERE, '.cmo-ai-backends.json');
+  if (!existsSync(selectionPath)) return;
+  try {
+    const selection = JSON.parse(readFileSync(selectionPath, 'utf-8'));
+    if (!process.env.AI_PROVIDER_TYPE && validProviderType(selection.providerType)) {
+      config.providerType = selection.providerType;
+      config.backendId = String(selection.id || '');
+      if (!process.env.AI_PROVIDER_BASE_URL) config.baseUrl = String(selection.baseUrl || '');
+      if (!process.env.AI_PROVIDER_MODEL) config.model = String(selection.model || '');
+      config.cliHome = String(selection.cliHome || '');
+      if (!process.env.AI_PROVIDER_API_KEY && selection.apiKeyEnv) {
+        config.apiKey = (process.env[selection.apiKeyEnv] || '').trim();
+      }
+    }
+  } catch {
+    // tolerated -- selection file is optional
+  }
+})();
 
 // -----------------------------------------------------------------------------
 // Helpers
@@ -157,6 +183,8 @@ function redactedConfig() {
     providerType:     config.providerType,
     baseUrl:          config.baseUrl,
     model:            config.model,
+    cliHome:          config.cliHome,
+    backendId:        config.backendId,
     generationMode:   config.generationMode,
     temperature:      config.temperature,
     maxTokens:        config.maxTokens,
@@ -341,6 +369,7 @@ async function handleSettingsPost(req, res) {
   if (typeof update.baseUrl === 'string')     config.baseUrl     = update.baseUrl;
   if (typeof update.apiKey === 'string')      config.apiKey      = update.apiKey;
   if (typeof update.model === 'string')       config.model       = update.model;
+  if (typeof update.cliHome === 'string')     config.cliHome     = update.cliHome;
   if (update.generationMode === 'provider-default' || update.generationMode === 'manual') {
     config.generationMode = update.generationMode;
   }
@@ -354,7 +383,7 @@ async function handleSettingsPost(req, res) {
 async function handleTestProvider(req, res) {
   const overrides = await readJsonOrEmpty(req);
   const merged = { ...config, ...overrides };
-  if (!merged.baseUrl) {
+  if (!merged.baseUrl && !isCliProviderType(merged.providerType)) {
     return sendJson(res, 400, { ok: false, error: 'baseUrl not configured' });
   }
   try {
@@ -369,7 +398,7 @@ async function handleTestProvider(req, res) {
 async function handleListModels(req, res) {
   const overrides = await readJsonOrEmpty(req);
   const merged = { ...config, ...overrides };
-  if (!merged.baseUrl) {
+  if (!merged.baseUrl && !isCliProviderType(merged.providerType)) {
     return sendJson(res, 400, { ok: false, error: 'baseUrl not configured' });
   }
   try {
@@ -403,7 +432,7 @@ async function handleChat(req, res) {
       ? body.maxTokens
       : (typeof body.providerOverride?.maxTokens === 'number' ? body.providerOverride.maxTokens : config.maxTokens),
   };
-  if (!merged.baseUrl) {
+  if (!merged.baseUrl && !isCliProviderType(merged.providerType)) {
     return sendJson(res, 400, { ok: false, error: 'baseUrl not configured' });
   }
   if (!merged.model) {

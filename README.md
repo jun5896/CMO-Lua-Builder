@@ -20,6 +20,18 @@ npm run bridge -- logs --kind exception --limit 10          # CMO 로그 read-on
 
 폴러 설치 Lua를 CMO Lua 콘솔에서 1회 실행하면, 이후 `inbox` 발행분은 게임이 RegularTime 이벤트로 자동 실행합니다(KeyValue 가드로 중복 실행 방지, 결과는 `aiassist_inbox_result` KeyValue). 폴러 없이도 `apply` + 콘솔 1줄 실행으로 동작합니다.
 
+### AI 백엔드 선택 (구독 CLI + BYOK)
+
+로컬의 Claude Code 프로필 / Codex 계정 / Cursor CLI와 BYOK 프리셋(Kimi·GLM·Grok)을 자동 스캔해 골라 쓸 수 있습니다.
+
+```powershell
+npm run backends                                   # 목록 (계정 이메일·키 감지 상태 표시)
+npm run backends -- --use claude:default           # 기본 백엔드 지정
+npm run ask -- --backend codex:pro2 --prompt "..." # 일회성 호출/교차검수 위임
+```
+
+BYOK 키는 환경변수로만 읽으며 디스크에 저장하지 않습니다. Cursor Composer는 BYOK HTTP가 차단되어 있어 구독 CLI(`cursor-agent`) 경유로만 동작합니다.
+
 ## 실행 (GUI)
 
 `index.html`을 더블클릭해서 직접 실행하는 방식이 아닙니다. Vite 개발 서버가 React, ES module import, `/public` 정적 파일 경로를 처리해야 합니다.

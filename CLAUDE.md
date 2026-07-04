@@ -14,6 +14,22 @@ npm run bridge -- install-poller --write                      # 인게임 폴러
 npm run bridge -- logs --kind exception --limit 10            # 실행 결과/에러 회수 (read-only)
 ```
 
+## AI 백엔드 선택 / 교차검수 위임
+
+다른 모델에게 초안·2차 검수를 맡길 때 사용 (Claude 프로필 3종, Codex 계정 3종,
+Cursor Composer CLI, BYOK Kimi/GLM/Grok — 전부 자동 스캔):
+
+```powershell
+npm run backends                                  # 사용 가능한 백엔드 목록 (계정 이메일 포함)
+npm run backends -- --use codex:pro2              # 기본 백엔드 선택 (server/.cmo-ai-backends.json)
+npm run ask -- --backend byok:glm --prompt "..."  # 일회성 위임 (선택 무관)
+```
+
+API 키는 환경변수로만 전달 (파일에는 env 변수 이름만 저장). CLI 백엔드는 OS 임시
+폴더에서 1-shot 실행되므로 리포/게임 파일에 접근하지 않는다. 2026-07-04 실검증:
+claude:default, codex:pro2, cursor:default(--trust), byok:glm(glm-5.2) 왕복 OK.
+알려진 이슈: claude:work 프로필은 헤드리스 로그인 만료 시 `/login` 필요.
+
 표준 루프: Lua 초안 작성 → `apply`(또는 `inbox`) → 사용자가 CMO에서 로더 스니펫 1회 실행(폴러 설치 후에는 inbox 자동 실행) → `logs`로 에러 회수 → 수정 반복. 결과 KeyValue: `aiassist_inbox_result` (콘솔에서 `print(ScenEdit_GetKeyValue('aiassist_inbox_result'))`).
 
 안전 불변식 (변경 금지):
