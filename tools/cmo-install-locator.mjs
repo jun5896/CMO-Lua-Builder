@@ -113,6 +113,12 @@ export function findCmoScenariosRoot() {
   return path.join(findCmoRoot(), 'Scenarios');
 }
 
+export function findCmoImportExportRoot() {
+  const envRoot = normalizeEnvPath(process.env.CMO_IMPORTEXPORT_ROOT);
+  if (envRoot) return path.resolve(envRoot);
+  return path.join(findCmoRoot(), 'ImportExport');
+}
+
 export function findCmoWorkshopRoots() {
   const roots = [];
   for (const libraryRoot of steamLibraryRoots()) {

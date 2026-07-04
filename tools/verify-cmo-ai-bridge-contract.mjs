@@ -7,10 +7,13 @@ import path from 'node:path';
 import {
   INBOX_FILE_NAME,
   INBOX_RUNSCRIPT_PATH,
+  TELEMETRY_FILE_PREFIX,
   buildInboxLua,
   buildInboxStamp,
   buildNoopInboxLua,
   buildPollerInstallerLua,
+  buildTelemetryInstallerLua,
+  parseTelemetryInst,
   publishInbox,
   writeTrustedAiAssistFile,
 } from './cmo-ai-bridge.mjs';
@@ -54,6 +57,40 @@ async function run() {
 
     // No-op inbox is safe filler.
     assert.match(buildNoopInboxLua(), /no payload published yet/);
+
+    // Telemetry installer exports per-side unit dumps with a self-throttle.
+    const telemetry = buildTelemetryInstallerLua({ periodSeconds: 30 });
+    assert.match(telemetry, /ScenEdit_ExportInst/);
+    assert.match(telemetry, /aiassist_telemetry_last/);
+    assert.match(telemetry, /now - last >= 30/);
+    assert.match(telemetry, /VP_GetSides\(\)/);
+    assert.ok(telemetry.includes(TELEMETRY_FILE_PREFIX));
+    assert.doesNotMatch(telemetry, /ScenEdit_RunScript/, 'telemetry installer must pass the inbox gate');
+    assert.throws(() => buildTelemetryInstallerLua({ periodSeconds: 1 }), /periodSeconds/);
+    const telemetryOff = buildTelemetryInstallerLua({ uninstall: true });
+    assert.match(telemetryOff, /UNINSTALLER/);
+    assert.doesNotMatch(telemetryOff, /ExportInst/);
+
+    // Telemetry installer survives the inbox safety gate end-to-end.
+    assert.match(buildInboxLua(telemetry, buildInboxStamp(telemetry, now)), /ScenEdit_ExportInst/);
+
+    // Inst parser summarizes the JSON payload the game writes.
+    const inst = parseTelemetryInst(JSON.stringify({
+      DB_ID: 1,
+      Name: 'AiAssist telemetry Blue',
+      Comment: 't=1234',
+      MemberRecords: [{
+        Member_DBID: 35, Member_GUID: 'g-1', MemberType: 'Command_Core.Facility',
+        MemberName: 'Runway', ParentGroupName: 'Base', Longitude: 65.8, Latitude: 31.5,
+        Altitude: 0, LoadoutID: 0,
+      }],
+    }), 'AiAssist_telemetry_Blue.inst');
+    assert.equal(inst.ok, true);
+    assert.equal(inst.unitCount, 1);
+    assert.equal(inst.comment, 't=1234');
+    assert.equal(inst.units[0].type, 'Facility');
+    assert.equal(inst.units[0].lat, 31.5);
+    assert.equal(parseTelemetryInst('not json', 'x.inst').ok, false);
 
     // publishInbox dry-run writes nothing.
     const dryRun = await publishInbox({ payload: 'print(1)', cmoLuaRoot: tmp });

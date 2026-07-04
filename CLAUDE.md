@@ -12,6 +12,8 @@ npm run bridge -- apply --file <draft.lua> --slug <name> --write   # 1회성 초
 npm run bridge -- inbox --file <draft.lua> --write            # 폴러가 자동 실행하는 inbox 발행
 npm run bridge -- install-poller --write                      # 인게임 폴러 (un)installer 생성
 npm run bridge -- logs --kind exception --limit 10            # 실행 결과/에러 회수 (read-only)
+npm run bridge -- telemetry-install --via-inbox --write       # 준실시간 유닛 텔레메트리 (시나리오당 1회)
+npm run bridge -- telemetry                                   # 유닛 상태 덤프 판독 (ageSeconds로 신선도 확인)
 ```
 
 ## AI 백엔드 선택 / 교차검수 위임
