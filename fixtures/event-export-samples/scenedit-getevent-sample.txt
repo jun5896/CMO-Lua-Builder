@@ -1,0 +1,41 @@
+[SYNTHETIC] Mimics CMO Lua Console output for: return ScenEdit_GetEvent("Intel Update")
+
+> return ScenEdit_GetEvent("Intel Update")
+{
+  ["name"] = "Intel Update",
+  ["description"] = "Display intel update message via special action.",
+  ["isactive"] = true,
+  ["isrepeatable"] = false,
+  ["probability"] = 100,
+  ["trigger"] = {
+    [1] = {
+      ["type"] = "SpecialAction",
+      ["specialaction"] = "Intel Update",
+      ["mode"] = "Scored",
+      ["random"] = false
+    }
+  },
+  ["condition"] = {
+    [1] = {
+      ["type"] = "LuaScript",
+      ["description"] = "Check side exists",
+      ["script"] = "local side = 'Israel'\nif ScenEdit_GetSideOptions(side).name then\n  return true\nend\nreturn false",
+      ["isInverted"] = false
+    }
+  },
+  ["action"] = {
+    [1] = {
+      ["type"] = "LuaScript",
+      ["description"] = "Send intel message",
+      ["script"] = "ScenEdit_SpecialMessage('Israel', 'Intel updated at T+5min')\nWorld_GetMoveVector()",
+      ["isInverted"] = false
+    },
+    [2] = {
+      ["type"] = "Points",
+      ["description"] = "Award points",
+      ["side"] = "Israel",
+      ["points"] = 100,
+      ["reset"] = false
+    }
+  }
+}

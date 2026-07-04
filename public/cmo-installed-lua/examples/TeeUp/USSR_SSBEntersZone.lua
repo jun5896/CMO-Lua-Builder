@@ -1,0 +1,1 @@
+ScenEdit_SetKeyValue('SSBInZone','true')

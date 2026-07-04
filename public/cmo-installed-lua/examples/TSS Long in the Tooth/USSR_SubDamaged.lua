@@ -1,0 +1,1 @@
+ChangeScore('Soviet Union', -100, 'K 14 was damaged')

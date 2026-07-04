@@ -1,0 +1,1 @@
+ChangeScore('NATO',1500,'LPH 2 Iwo Jima reached the safe zone.')

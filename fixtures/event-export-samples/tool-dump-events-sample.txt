@@ -1,0 +1,47 @@
+[SYNTHETIC] Mimics CMO Tool_DumpEvents() console output
+Scenario: Iran Strike, 2020-2030
+Dump generated: 2026-05-02T10:00:00Z
+
+=== Event List (3 events) ===
+
+Event #1
+  Name                : Ready All Aircraft
+  Description         : Instantly ready all aircraft. Repeatable.
+  IsActive            : true
+  IsRepeatable        : true
+  Probability         : 100
+  Triggers            : 1
+    [1] Time — 5 minutes after scenario start
+  Conditions          : 0
+  Actions             : 1
+    [1] Special Action — Ready All Aircraft
+  Lua Actions         : 0
+
+Event #2
+  Name                : Intel Update
+  Description         : Display intel update message via special action.
+  IsActive            : true
+  IsRepeatable        : false
+  Probability         : 100
+  Triggers            : 1
+    [1] Special Action — Intel Update
+  Conditions          : 1
+    [1] Lua Script — side check
+  Actions             : 2
+    [1] Lua Script — message dispatch
+    [2] Points — Israel +100
+  Lua Actions         : 2
+
+Event #3
+  Name                : Delayed Strike Wave
+  Description         : (no description)
+  IsActive            : false
+  IsRepeatable        : false
+  Probability         : 75
+  Triggers            : 1
+    [1] Time — 30 minutes
+  Conditions          : 1
+    [1] Unit Remains — "F-15I Ra'am" >= 4
+  Actions             : 1
+    [1] Lua Script — spawn strike package
+  Lua Actions         : 1

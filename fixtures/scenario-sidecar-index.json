@@ -1,0 +1,60 @@
+{
+  "generatedAt": "2026-05-03T12:45:00+09:00",
+  "generator": "Kimi bridge-prep-non-src-support",
+  "scenarios": [
+    {
+      "slug": "iran-strike-2020-2030",
+      "slugCandidates": [
+        "iran-strike-2020-2030",
+        "iran_strike_2020_2030",
+        "IranStrike2020"
+      ],
+      "title": "Iran Strike, 2020-2030",
+      "originalFileName": "Iran Strike, 2020-2030.scen",
+      "source": "Steam Workshop 2855653232",
+      "artifacts": {
+        "scannerJson": {
+          "path": "public/scenario-scan-samples/iran-strike-2020-2030.json",
+          "sizeBytes": 36983,
+          "browserFetchable": true,
+          "contents": "safe-metadata-and-sidecars scan output"
+        },
+        "scenarioXml": {
+          "path": "public/scenario-scan-samples/iran-strike-2020-2030.scenario.xml",
+          "sizeBytes": 9495287,
+          "browserFetchable": true,
+          "contents": "decoded internal CMO scenario XML"
+        },
+        "summaryJson": {
+          "path": "fixtures/scenario-summary-samples/iran-strike-real-summary.json",
+          "sizeBytes": 2998331,
+          "browserFetchable": false,
+          "contents": "Claude summarizer output (Task 2 calibrated)"
+        },
+        "originalScen": {
+          "path": ".scenario-extract-cache/Iran_Strike_2020-2030.scen",
+          "sizeBytes": 1590515,
+          "browserFetchable": false,
+          "contents": "original binary .scen file"
+        }
+      },
+      "counts": {
+        "sides": 10,
+        "missions": 19,
+        "events": 21,
+        "specialActions": 17,
+        "unitsTotal": 1189,
+        "unitsInSummary": 500,
+        "luaScriptActions": 26
+      },
+      "db": {
+        "version": "DB3K_516.db3",
+        "family": "DB3K"
+      },
+      "meta": {
+        "complexity": "3",
+        "difficulty": "3"
+      }
+    }
+  ]
+}

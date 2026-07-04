@@ -1,0 +1,1 @@
+ScenEdit_AssignUnitToMission('e9ceff00-f77b-441e-8b72-00a944313d2d', 'Hotel II SSBN Strike') -- Hotel II SSBN Group

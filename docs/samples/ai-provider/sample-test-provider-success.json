@@ -1,0 +1,8 @@
+{
+  "_comment": "Successful /api/ai/test-provider response. Adapter pinged GET /v1/models (or GET /api/tags for ollama) and got 2xx. No model list is leaked back; just reachability.",
+  "ok": true,
+  "status": 200,
+  "providerType": "openai-compatible",
+  "baseUrl": "https://api.openai.com",
+  "reached": true
+}

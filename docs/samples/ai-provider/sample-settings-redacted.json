@@ -1,0 +1,18 @@
+{
+  "_comment": "GET /api/ai/settings response. apiKey is NEVER returned in plaintext. apiKeyPreview shows first 4 + last 2 chars only when configured.",
+  "ok": true,
+  "settings": {
+    "providerType": "openai-compatible",
+    "baseUrl": "https://api.openai.com",
+    "model": "gpt-4o-mini",
+    "temperature": 0.5,
+    "maxTokens": 1024,
+    "apiKeyConfigured": true,
+    "apiKeyPreview": "sk-t***ef",
+    "supportedProviders": [
+      "openai-compatible",
+      "ollama",
+      "lm-studio"
+    ]
+  }
+}

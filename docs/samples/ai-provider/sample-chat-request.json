@@ -1,0 +1,15 @@
+{
+  "_comment": "POST /api/ai/chat — request body sent by the UI. Provider config comes from /api/ai/settings unless overridden via providerOverride.",
+  "messages": [
+    { "role": "system", "content": "You are a CMO Lua scripting assistant. Reply only with paste-ready Lua." },
+    { "role": "user",   "content": "Generate a Lua action that prints 'hello' to the message log." }
+  ],
+  "temperature": 0.3,
+  "maxTokens": 256,
+  "providerOverride": {
+    "_comment": "Optional. Lets the UI hot-swap providers without touching settings. Same shape as /api/ai/settings.",
+    "providerType": "openai-compatible",
+    "baseUrl": "https://api.openai.com",
+    "model": "gpt-4o-mini"
+  }
+}

@@ -1,0 +1,1 @@
+ChangeScore('Students',500,'Target sufficiently damaged.')

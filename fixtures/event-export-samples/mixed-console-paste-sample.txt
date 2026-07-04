@@ -1,0 +1,36 @@
+[SYNTHETIC] Mimics an imperfect user copy-paste from CMO Lua Console
+-- some header text from a forum post was included by accident
+Hey guys, here is the event dump:
+
+> return ScenEdit_GetEvent("Delayed Strike Wave")
+... incomplete paste, some lines garbled ...
+  ["name"] = "Delayed Strike Wave",
+  ["description"] = "",
+  ["isactive"] = false,
+  ["isrepeatable"] = false,
+  ["probability"] = 75,
+  ["trigger"] = {
+    [1] = {
+      ["type"] = "Time",
+      ["time"] = 1800
+    }
+  },
+  ["condition"] = {
+    [1] = {
+      ["type"] = "UnitRemains",
+      ["unit"] = "F-15I Ra'am",
+-- user accidentally scrolled; missing lines here --
+    }
+  },
+  ["action"] = {
+    [1] = {
+      ["type"] = "LuaScript",
+      ["description"] = "spawn strike",
+      ["script"] = "local g = ScenEdit_GetUnit({side='Israel', name='Strike Lead'})\nif g then\n  Command_ScenEdit_AddUnit({...})\n  VP_GetSide({side='Israel'})
+end",
+      ["isInverted"] = false
+    }
+  }
+}
+-- trailing forum signature --
+Cheers, player123

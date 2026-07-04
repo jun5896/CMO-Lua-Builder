@@ -1,0 +1,419 @@
+﻿{
+    "generatedAt":  "2026-05-10T03:50:47",
+    "sourceRoot":  "C:\\Users\\dlwls\\.codex\\cmo-lua-dev",
+    "db":  {
+               "db3k":  "DB3K_517.db3",
+               "cwdb":  "CWDB_517.db3",
+               "componentEntries":  101078,
+               "db3kReferences":  72796,
+               "cwdbReferences":  28282,
+               "dbIndex":  "/cmo-dev-work/db_cache/db_index.lua"
+           },
+    "templates":  [
+                      {
+                          "name":  "doctrine_emcon.tpl",
+                          "file":  "doctrine_emcon.tpl.lua",
+                          "path":  "/cmo-dev-work/templates/doctrine_emcon.tpl.lua",
+                          "category":  "doctrine",
+                          "size":  770,
+                          "lines":  20
+                      },
+                      {
+                          "name":  "doctrine_set.tpl",
+                          "file":  "doctrine_set.tpl.lua",
+                          "path":  "/cmo-dev-work/templates/doctrine_set.tpl.lua",
+                          "category":  "doctrine",
+                          "size":  761,
+                          "lines":  21
+                      },
+                      {
+                          "name":  "event_ambient_traffic.tpl",
+                          "file":  "event_ambient_traffic.tpl.lua",
+                          "path":  "/cmo-dev-work/templates/event_ambient_traffic.tpl.lua",
+                          "category":  "event",
+                          "size":  2317,
+                          "lines":  60
+                      },
+                      {
+                          "name":  "event_cargo_drop.tpl",
+                          "file":  "event_cargo_drop.tpl.lua",
+                          "path":  "/cmo-dev-work/templates/event_cargo_drop.tpl.lua",
+                          "category":  "event",
+                          "size":  2108,
+                          "lines":  55
+                      },
+                      {
+                          "name":  "event_complex.tpl",
+                          "file":  "event_complex.tpl.lua",
+                          "path":  "/cmo-dev-work/templates/event_complex.tpl.lua",
+                          "category":  "event",
+                          "size":  2798,
+                          "lines":  55
+                      },
+                      {
+                          "name":  "event_contact_emcon.tpl",
+                          "file":  "event_contact_emcon.tpl.lua",
+                          "path":  "/cmo-dev-work/templates/event_contact_emcon.tpl.lua",
+                          "category":  "event",
+                          "size":  2938,
+                          "lines":  70
+                      },
+                      {
+                          "name":  "event_csar.tpl",
+                          "file":  "event_csar.tpl.lua",
+                          "path":  "/cmo-dev-work/templates/event_csar.tpl.lua",
+                          "category":  "event",
+                          "size":  4519,
+                          "lines":  108
+                      },
+                      {
+                          "name":  "event_dbid_score.tpl",
+                          "file":  "event_dbid_score.tpl.lua",
+                          "path":  "/cmo-dev-work/templates/event_dbid_score.tpl.lua",
+                          "category":  "event",
+                          "size":  1929,
+                          "lines":  44
+                      },
+                      {
+                          "name":  "event_dynamic_weather.tpl",
+                          "file":  "event_dynamic_weather.tpl.lua",
+                          "path":  "/cmo-dev-work/templates/event_dynamic_weather.tpl.lua",
+                          "category":  "event",
+                          "size":  2886,
+                          "lines":  68
+                      },
+                      {
+                          "name":  "event_escalation.tpl",
+                          "file":  "event_escalation.tpl.lua",
+                          "path":  "/cmo-dev-work/templates/event_escalation.tpl.lua",
+                          "category":  "event",
+                          "size":  1750,
+                          "lines":  41
+                      },
+                      {
+                          "name":  "event_iads_ambush.tpl",
+                          "file":  "event_iads_ambush.tpl.lua",
+                          "path":  "/cmo-dev-work/templates/event_iads_ambush.tpl.lua",
+                          "category":  "event",
+                          "size":  6350,
+                          "lines":  168
+                      },
+                      {
+                          "name":  "event_kv_flag.tpl",
+                          "file":  "event_kv_flag.tpl.lua",
+                          "path":  "/cmo-dev-work/templates/event_kv_flag.tpl.lua",
+                          "category":  "event",
+                          "size":  1486,
+                          "lines":  36
+                      },
+                      {
+                          "name":  "event_logistics.tpl",
+                          "file":  "event_logistics.tpl.lua",
+                          "path":  "/cmo-dev-work/templates/event_logistics.tpl.lua",
+                          "category":  "event",
+                          "size":  2466,
+                          "lines":  58
+                      },
+                      {
+                          "name":  "event_missions_toggle.tpl",
+                          "file":  "event_missions_toggle.tpl.lua",
+                          "path":  "/cmo-dev-work/templates/event_missions_toggle.tpl.lua",
+                          "category":  "event",
+                          "size":  1746,
+                          "lines":  43
+                      },
+                      {
+                          "name":  "event_radio_message.tpl",
+                          "file":  "event_radio_message.tpl.lua",
+                          "path":  "/cmo-dev-work/templates/event_radio_message.tpl.lua",
+                          "category":  "event",
+                          "size":  2313,
+                          "lines":  57
+                      },
+                      {
+                          "name":  "event_random_start_weather.tpl",
+                          "file":  "event_random_start_weather.tpl.lua",
+                          "path":  "/cmo-dev-work/templates/event_random_start_weather.tpl.lua",
+                          "category":  "event",
+                          "size":  2380,
+                          "lines":  54
+                      },
+                      {
+                          "name":  "event_regular_time.tpl",
+                          "file":  "event_regular_time.tpl.lua",
+                          "path":  "/cmo-dev-work/templates/event_regular_time.tpl.lua",
+                          "category":  "event",
+                          "size":  840,
+                          "lines":  19
+                      },
+                      {
+                          "name":  "event_scen_loaded.tpl",
+                          "file":  "event_scen_loaded.tpl.lua",
+                          "path":  "/cmo-dev-work/templates/event_scen_loaded.tpl.lua",
+                          "category":  "event",
+                          "size":  785,
+                          "lines":  16
+                      },
+                      {
+                          "name":  "event_scramble.tpl",
+                          "file":  "event_scramble.tpl.lua",
+                          "path":  "/cmo-dev-work/templates/event_scramble.tpl.lua",
+                          "category":  "event",
+                          "size":  2357,
+                          "lines":  59
+                      },
+                      {
+                          "name":  "event_simple.tpl",
+                          "file":  "event_simple.tpl.lua",
+                          "path":  "/cmo-dev-work/templates/event_simple.tpl.lua",
+                          "category":  "event",
+                          "size":  1226,
+                          "lines":  27
+                      },
+                      {
+                          "name":  "event_split_merge.tpl",
+                          "file":  "event_split_merge.tpl.lua",
+                          "path":  "/cmo-dev-work/templates/event_split_merge.tpl.lua",
+                          "category":  "event",
+                          "size":  2916,
+                          "lines":  65
+                      },
+                      {
+                          "name":  "event_teleport.tpl",
+                          "file":  "event_teleport.tpl.lua",
+                          "path":  "/cmo-dev-work/templates/event_teleport.tpl.lua",
+                          "category":  "event",
+                          "size":  2535,
+                          "lines":  68
+                      },
+                      {
+                          "name":  "event_unit_damaged.tpl",
+                          "file":  "event_unit_damaged.tpl.lua",
+                          "path":  "/cmo-dev-work/templates/event_unit_damaged.tpl.lua",
+                          "category":  "event",
+                          "size":  1037,
+                          "lines":  23
+                      },
+                      {
+                          "name":  "event_unit_destroyed.tpl",
+                          "file":  "event_unit_destroyed.tpl.lua",
+                          "path":  "/cmo-dev-work/templates/event_unit_destroyed.tpl.lua",
+                          "category":  "event",
+                          "size":  1424,
+                          "lines":  32
+                      },
+                      {
+                          "name":  "event_unit_detected.tpl",
+                          "file":  "event_unit_detected.tpl.lua",
+                          "path":  "/cmo-dev-work/templates/event_unit_detected.tpl.lua",
+                          "category":  "event",
+                          "size":  1061,
+                          "lines":  23
+                      },
+                      {
+                          "name":  "event_unit_enters_area.tpl",
+                          "file":  "event_unit_enters_area.tpl.lua",
+                          "path":  "/cmo-dev-work/templates/event_unit_enters_area.tpl.lua",
+                          "category":  "event",
+                          "size":  1150,
+                          "lines":  25
+                      },
+                      {
+                          "name":  "event_unit_x.tpl",
+                          "file":  "event_unit_x.tpl.lua",
+                          "path":  "/cmo-dev-work/templates/event_unit_x.tpl.lua",
+                          "category":  "event",
+                          "size":  1607,
+                          "lines":  37
+                      },
+                      {
+                          "name":  "event_victory_cond.tpl",
+                          "file":  "event_victory_cond.tpl.lua",
+                          "path":  "/cmo-dev-work/templates/event_victory_cond.tpl.lua",
+                          "category":  "event",
+                          "size":  1858,
+                          "lines":  46
+                      },
+                      {
+                          "name":  "inst_import.tpl",
+                          "file":  "inst_import.tpl.lua",
+                          "path":  "/cmo-dev-work/templates/inst_import.tpl.lua",
+                          "category":  "inst",
+                          "size":  436,
+                          "lines":  14
+                      },
+                      {
+                          "name":  "kvstore_set.tpl",
+                          "file":  "kvstore_set.tpl.lua",
+                          "path":  "/cmo-dev-work/templates/kvstore_set.tpl.lua",
+                          "category":  "kvstore",
+                          "size":  384,
+                          "lines":  10
+                      },
+                      {
+                          "name":  "loadout_scramble.tpl",
+                          "file":  "loadout_scramble.tpl.lua",
+                          "path":  "/cmo-dev-work/templates/loadout_scramble.tpl.lua",
+                          "category":  "loadout",
+                          "size":  872,
+                          "lines":  24
+                      },
+                      {
+                          "name":  "loadout_set.tpl",
+                          "file":  "loadout_set.tpl.lua",
+                          "path":  "/cmo-dev-work/templates/loadout_set.tpl.lua",
+                          "category":  "loadout",
+                          "size":  867,
+                          "lines":  24
+                      },
+                      {
+                          "name":  "mission_cargo.tpl",
+                          "file":  "mission_cargo.tpl.lua",
+                          "path":  "/cmo-dev-work/templates/mission_cargo.tpl.lua",
+                          "category":  "mission",
+                          "size":  1569,
+                          "lines":  31
+                      },
+                      {
+                          "name":  "mission_ferry.tpl",
+                          "file":  "mission_ferry.tpl.lua",
+                          "path":  "/cmo-dev-work/templates/mission_ferry.tpl.lua",
+                          "category":  "mission",
+                          "size":  1389,
+                          "lines":  26
+                      },
+                      {
+                          "name":  "mission_generic.tpl",
+                          "file":  "mission_generic.tpl.lua",
+                          "path":  "/cmo-dev-work/templates/mission_generic.tpl.lua",
+                          "category":  "mission",
+                          "size":  545,
+                          "lines":  14
+                      },
+                      {
+                          "name":  "mission_mine.tpl",
+                          "file":  "mission_mine.tpl.lua",
+                          "path":  "/cmo-dev-work/templates/mission_mine.tpl.lua",
+                          "category":  "mission",
+                          "size":  963,
+                          "lines":  23
+                      },
+                      {
+                          "name":  "mission_patrol.tpl",
+                          "file":  "mission_patrol.tpl.lua",
+                          "path":  "/cmo-dev-work/templates/mission_patrol.tpl.lua",
+                          "category":  "mission",
+                          "size":  1260,
+                          "lines":  28
+                      },
+                      {
+                          "name":  "mission_strike.tpl",
+                          "file":  "mission_strike.tpl.lua",
+                          "path":  "/cmo-dev-work/templates/mission_strike.tpl.lua",
+                          "category":  "mission",
+                          "size":  1769,
+                          "lines":  41
+                      },
+                      {
+                          "name":  "mission_support.tpl",
+                          "file":  "mission_support.tpl.lua",
+                          "path":  "/cmo-dev-work/templates/mission_support.tpl.lua",
+                          "category":  "mission",
+                          "size":  1253,
+                          "lines":  26
+                      },
+                      {
+                          "name":  "reference_point_add.tpl",
+                          "file":  "reference_point_add.tpl.lua",
+                          "path":  "/cmo-dev-work/templates/reference_point_add.tpl.lua",
+                          "category":  "reference",
+                          "size":  972,
+                          "lines":  23
+                      },
+                      {
+                          "name":  "side_posture.tpl",
+                          "file":  "side_posture.tpl.lua",
+                          "path":  "/cmo-dev-work/templates/side_posture.tpl.lua",
+                          "category":  "side",
+                          "size":  560,
+                          "lines":  13
+                      },
+                      {
+                          "name":  "unit_spawn.tpl",
+                          "file":  "unit_spawn.tpl.lua",
+                          "path":  "/cmo-dev-work/templates/unit_spawn.tpl.lua",
+                          "category":  "unit",
+                          "size":  1037,
+                          "lines":  25
+                      },
+                      {
+                          "name":  "unit_spawn_random.tpl",
+                          "file":  "unit_spawn_random.tpl.lua",
+                          "path":  "/cmo-dev-work/templates/unit_spawn_random.tpl.lua",
+                          "category":  "unit",
+                          "size":  1746,
+                          "lines":  41
+                      },
+                      {
+                          "name":  "weather_random.tpl",
+                          "file":  "weather_random.tpl.lua",
+                          "path":  "/cmo-dev-work/templates/weather_random.tpl.lua",
+                          "category":  "weather",
+                          "size":  619,
+                          "lines":  11
+                      },
+                      {
+                          "name":  "zone_add.tpl",
+                          "file":  "zone_add.tpl.lua",
+                          "path":  "/cmo-dev-work/templates/zone_add.tpl.lua",
+                          "category":  "zone",
+                          "size":  967,
+                          "lines":  28
+                      }
+                  ],
+    "presets":  [
+                    {
+                        "name":  "advanced_ops",
+                        "file":  "advanced_ops.lua",
+                        "path":  "/cmo-dev-work/presets/advanced_ops.lua",
+                        "size":  4265,
+                        "lines":  126
+                    },
+                    {
+                        "name":  "airbase_scramble",
+                        "file":  "airbase_scramble.lua",
+                        "path":  "/cmo-dev-work/presets/airbase_scramble.lua",
+                        "size":  1164,
+                        "lines":  34
+                    },
+                    {
+                        "name":  "cap_patrol",
+                        "file":  "cap_patrol.lua",
+                        "path":  "/cmo-dev-work/presets/cap_patrol.lua",
+                        "size":  840,
+                        "lines":  21
+                    },
+                    {
+                        "name":  "multi_file_pack",
+                        "file":  "multi_file_pack.lua",
+                        "path":  "/cmo-dev-work/presets/multi_file_pack.lua",
+                        "size":  1224,
+                        "lines":  39
+                    },
+                    {
+                        "name":  "quickbattle",
+                        "file":  "quickbattle.lua",
+                        "path":  "/cmo-dev-work/presets/quickbattle.lua",
+                        "size":  2602,
+                        "lines":  76
+                    },
+                    {
+                        "name":  "strike_alpha",
+                        "file":  "strike_alpha.lua",
+                        "path":  "/cmo-dev-work/presets/strike_alpha.lua",
+                        "size":  4184,
+                        "lines":  101
+                    }
+                ],
+    "readme":  "/cmo-dev-work/README.cmo-lua-dev-work.md"
+}

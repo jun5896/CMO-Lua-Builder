@@ -1,0 +1,1077 @@
+{
+  "version": 1,
+  "generatedFrom": "src/components/TemplateLibrary.jsx TEMPLATE_ANNOTATIONS",
+  "guideRules": [
+    {
+      "id": "mission",
+      "keywords": ["mission", "patrol", "strike", "support", "ferry"],
+      "title": "Mission Control",
+      "plain": "임무를 만들거나 기존 임무의 활성 상태, 배정 유닛, 순찰/타격 영역을 조정하는 계열입니다.",
+      "prerequisites": ["CMO Mission Editor에서 Side와 Mission 이름을 먼저 확인합니다.", "임무가 RP/Zone을 참조하면 해당 RP가 같은 Side에 존재해야 합니다."],
+      "safePattern": "ScenEdit_GetMission으로 존재 여부를 확인한 뒤 Add/Set/Assign을 호출하세요. 반복 이벤트라면 KeyValue나 존재 체크로 중복 생성을 막습니다.",
+      "aiHint": "Mission 이름, Side 이름, 배정할 Unit GUID/이름을 명시하고, 없으면 AI가 추측하지 말고 사용자에게 확인 요청하도록 지시합니다."
+    },
+    {
+      "id": "unit",
+      "keywords": ["unit", "spawn", "loadout", "aircraft", "ship", "submarine"],
+      "title": "Unit Spawn / Edit",
+      "plain": "유닛을 추가, 삭제, 위치/고도/속도/Loadout을 변경하거나 이미 배치된 유닛을 조작하는 계열입니다.",
+      "prerequisites": ["DBID/Loadout ID는 현재 시나리오 DB 기준으로 Database Viewer에서 확인합니다.", "배치된 유닛은 우클릭 메뉴의 Copy unit ID to clipboard GUID를 우선 사용합니다."],
+      "safePattern": "ScenEdit_GetUnit 결과가 nil인지 확인하고, DBID/Loadout ID는 주석으로 출처를 남기세요.",
+      "aiHint": "AI에게 플랫폼 DBID, Loadout ID, 배치 유닛 GUID의 출처를 명시하게 하고, 불명확하면 placeholder 대신 확인 질문을 내도록 지시합니다."
+    },
+    {
+      "id": "reference",
+      "keywords": ["reference", "point", "zone", "area", "rp", "nav"],
+      "title": "Reference Points / Zones",
+      "plain": "RP를 만들거나 이동하고, No-Nav/Exclusion Zone 또는 이벤트 영역을 참조하는 계열입니다.",
+      "prerequisites": ["맵 좌표와 RP/Zone 생성은 CMO 내부 UI에서 처리하는 것이 안전합니다.", "Zone polygon의 Area/RPoint와 Side의 일반 ReferencePoint를 혼동하지 않습니다."],
+      "safePattern": "RP/Zone 이름은 Side 단위로 확인하고, 삭제보다는 Set/Update를 우선 사용하세요.",
+      "aiHint": "AI에게 좌표를 새로 만들게 하기보다 CMO에서 만든 RP/Zone 이름을 받아 Lua가 참조하도록 지시합니다."
+    },
+    {
+      "id": "event",
+      "keywords": ["event", "trigger", "condition", "action", "regular", "detected", "destroyed"],
+      "title": "Event Automation",
+      "plain": "CMO Event Editor의 Trigger/Condition/Action 구조에 Lua Script Action을 붙이는 계열입니다.",
+      "prerequisites": ["Trigger와 Condition은 가능하면 CMO UI에서 만들고, Lua는 Action 본문으로 붙입니다.", "반복 이벤트인지 1회성 이벤트인지 먼저 결정합니다."],
+      "safePattern": "이벤트가 반복 실행될 수 있으면 ScenEdit_GetKeyValue/SetKeyValue 또는 명확한 상태 체크를 둡니다.",
+      "aiHint": "AI에게 이벤트 이름, 트리거 방식, 반복 정책, Lua를 붙일 위치를 분리해서 응답하도록 요구합니다."
+    },
+    {
+      "id": "doctrine",
+      "keywords": ["doctrine", "emcon", "wra", "posture"],
+      "title": "Doctrine / EMCON",
+      "plain": "교전 규칙, WRA, 레이더/소나/통신 방출 상태, Side posture를 바꾸는 계열입니다.",
+      "prerequisites": ["적용 범위가 Side, Mission, Group, Unit 중 어디인지 먼저 정합니다.", "CMO UI의 Doctrine/EMCON 값과 동일한 토큰을 사용합니다."],
+      "safePattern": "좁은 범위의 Unit/Group부터 테스트하고, 전체 Side 변경은 검증 후 적용하세요.",
+      "aiHint": "AI에게 적용 범위와 되돌리는 조건을 같이 설계하게 하세요. 특히 EMCON은 값 추측을 금지합니다."
+    },
+    {
+      "id": "weather",
+      "keywords": ["weather", "wind", "sea", "cloud", "rain"],
+      "title": "Weather",
+      "plain": "전역 날씨, 해상 상태, 바람, 구름 등을 바꿔 센서/항공/해상 작전에 영향을 주는 계열입니다.",
+      "prerequisites": ["날씨는 전역 효과이므로 모든 Side와 센서 모델에 영향을 줄 수 있습니다.", "수치 범위는 CMO Lua 문서와 실제 콘솔 테스트로 확인합니다."],
+      "safePattern": "짧은 주기로 급격히 바꾸지 말고, 이벤트 로그 메시지로 변경 사실을 남기세요.",
+      "aiHint": "AI에게 날씨 수치의 의미와 예상 영향, 테스트 방법을 같이 설명하도록 요구합니다."
+    },
+    {
+      "id": "message",
+      "keywords": ["message", "briefing", "score", "victory", "special"],
+      "title": "Messaging / Scoring",
+      "plain": "플레이어 메시지, 점수, 승패 조건, 브리핑성 알림을 처리하는 계열입니다.",
+      "prerequisites": ["메시지를 받을 Side 이름과 점수 변경 대상 Side를 확인합니다.", "시나리오 종료 함수는 되돌릴 수 없으므로 조건을 확실히 둡니다."],
+      "safePattern": "점수/종료 로직은 조건 확인 후 실행하고, 로그에 남길 짧은 사유 문자열을 포함하세요.",
+      "aiHint": "AI에게 사용자 표시 메시지와 내부 점수 로직을 분리해서 출력하게 하면 검수하기 쉽습니다."
+    }
+  ],
+  "templates": {
+    "doctrine_set.tpl.lua": {
+      "title": "Doctrine / EMCON guide",
+      "summary": "Side 전체 또는 특정 유닛의 Doctrine 설정을 바꿉니다. 교전 규칙, 무기 통제, EMCON 관련 값을 일괄 적용할 때 쓰는 템플릿입니다.",
+      "beginnerNotes": [
+        "Doctrine은 아군이나 적군이 어떻게 싸울지 정하는 핵심 규칙입니다.",
+        "Side 전체에 적용하면 소속 유닛 전체가 영향을 받으므로 먼저 단일 유닛에서 테스트하세요.",
+        "특정 유닛만 바꾸려면 CMO 시나리오에 실제 존재하는 유닛 이름과 Side 이름을 입력해야 합니다."
+      ],
+      "prerequisites": [
+        "적용 범위가 Side 전체인지 특정 Unit인지 먼저 정합니다.",
+        "settings 키는 CMO Doctrine/EMCON UI와 현재 시나리오 버전에서 유효한 필드명을 사용합니다."
+      ],
+      "safePattern": "좁은 범위의 유닛부터 테스트하고, 전체 Side 변경은 CMO 실행 결과를 확인한 뒤 적용하세요.",
+      "aiHint": "AI에게 적용 범위와 되돌릴 조건을 함께 요구하세요. Doctrine/EMCON 값은 추측하지 못하게 합니다.",
+      "checks": [
+        "settings key 이름이 현재 CMO 버전에서 유효한지 확인 필요",
+        "weapon_control_status_air 같은 숫자 값의 의미는 CMO Doctrine UI 또는 공식 문서 기준으로 확인 필요"
+      ]
+    },
+    "doctrine_emcon.tpl.lua": {
+      "title": "EMCON Quick Set guide",
+      "summary": "Side 전체 또는 특정 유닛의 레이더/소나/통신 방출 상태를 빠르게 바꾸는 템플릿입니다.",
+      "beginnerNotes": [
+        "EMCON은 유닛이 전자파를 내보낼지 숨길지를 정하는 설정입니다.",
+        "Radar=Active 같은 값은 탐지 성능을 올릴 수 있지만 적에게 노출될 가능성도 커집니다.",
+        "Side 전체에 적용하면 많은 유닛이 동시에 바뀌므로 처음에는 단일 유닛으로 테스트하세요."
+      ],
+      "prerequisites": [
+        "적용 대상 Side 이름을 CMO UI에서 정확히 확인합니다.",
+        "단일 유닛에 적용할 경우 유닛 이름 또는 GUID가 현재 시나리오에 실제로 존재해야 합니다.",
+        "value에는 CMO가 이해하는 EMCON 문자열만 넣습니다."
+      ],
+      "safePattern": "대상 유닛 또는 Side를 먼저 조회하고, 실패하면 변경하지 않는 패턴을 유지하세요. 넓은 범위 변경은 테스트 시나리오에서 먼저 검증합니다.",
+      "aiHint": "AI에게 적용 범위가 Side인지 Unit인지 먼저 묻게 하고, EMCON 값은 추측하지 말고 CMO UI에서 확인한 문자열만 사용하게 하세요.",
+      "checks": [
+        "ScenEdit_SetEMCON의 scope/id 조합이 현재 CMO 빌드에서 기대대로 동작하는지 엔진 테스트 필요",
+        "Radar=Active;Sonar=Passive 같은 복합 문자열은 실제 Lua Console 또는 Event Action에서 확인 권장"
+      ]
+    },
+    "event_scramble.tpl.lua": {
+      "title": "Emergency Scramble guide",
+      "summary": "트리거가 발생하면 대기 중인 항공기의 Loadout을 바꾸고 지정 미션에 배정하는 긴급 출격 이벤트입니다.",
+      "beginnerNotes": [
+        "적 기습, 침투기 탐지, 특정 시간 도달 같은 조건에서 QRA 항공기를 즉시 출격시키는 용도입니다.",
+        "여러 유닛을 동시에 처리할 수 있지만, GUID를 쓰면 이름 중복 문제를 피할 수 있습니다.",
+        "TimeToReady_Minutes를 0으로 두면 즉시 준비 상태로 취급됩니다."
+      ],
+      "prerequisites": [
+        "CMO Mission Editor에서 배정할 Mission 이름을 먼저 만듭니다.",
+        "Loadout ID는 현재 시나리오 DB 기준 Database Viewer에서 확인합니다.",
+        "대상 항공기는 가능하면 우클릭 Copy unit ID to clipboard로 GUID를 확보합니다."
+      ],
+      "safePattern": "GUID → side+name → name 순서로 조회하고, 유닛이 없을 때는 경고만 출력해 이벤트 전체가 멈추지 않게 구성합니다.",
+      "aiHint": "AI에게 유닛 GUID 목록, Mission 이름, Loadout ID 출처를 명시하게 하고 누락되면 코드 생성 전에 되묻게 하세요.",
+      "checks": [
+        "ScenEdit_SetLoadout의 unitName에 GUID 전달이 현재 CMO에서 정상 동작하는지 엔진 테스트 필요",
+        "ScenEdit_AssignUnitToMission의 첫 번째 인자 형식은 실제 콘솔/이벤트 테스트로 확인 권장"
+      ]
+    },
+    "mission_patrol.tpl.lua": {
+      "title": "Patrol Mission guide",
+      "summary": "CAP, ASW, ASuW 같은 순찰 미션을 만들고 Reference Point 목록으로 순찰 구역을 지정합니다.",
+      "beginnerNotes": [
+        "특정 구역을 계속 정찰하거나 방어하도록 순찰 임무를 만드는 템플릿입니다.",
+        "AAW는 대공, ASW는 대잠, ASuW는 대수상 순찰로 이해하면 됩니다.",
+        "1/3 규칙을 켜면 전체 전력 중 일부만 교대로 순찰에 투입되어 지속 감시가 쉬워집니다."
+      ],
+      "prerequisites": [
+        "CMO 지도에서 같은 Side의 Reference Point를 3개 이상 만들어 순찰 구역을 준비합니다.",
+        "Side 이름과 Mission 이름을 CMO UI에서 정확히 복사합니다."
+      ],
+      "safePattern": "잘못된 patrol_type은 폴백되지만, 실제 작전 목적에 맞는 타입을 명시하고 RP 목록이 비어 있지 않은지 확인하세요.",
+      "aiHint": "AI에게 RP 이름 목록과 patrol_type을 명확히 주고, 임의 좌표 생성보다 CMO에서 만든 RP 참조를 우선하도록 지시하세요.",
+      "checks": []
+    },
+    "mission_strike.tpl.lua": {
+      "title": "Strike Mission guide",
+      "summary": "타격 미션을 만들고 지정한 표적 유닛을 미션 target으로 배정하는 템플릿입니다.",
+      "beginnerNotes": [
+        "Strike 미션은 지상, 해상, 잠수함, 공중 요격 표적을 공격하도록 항공기나 무장을 운용하는 임무입니다.",
+        "표적 이름이 중복될 수 있으므로 target_side나 GUID 수준의 확인이 있으면 더 안전합니다.",
+        "미션 생성과 표적 배정은 별개 단계이므로 둘 중 하나가 실패할 수 있습니다."
+      ],
+      "prerequisites": [
+        "Side 이름과 새 Mission 이름을 정합니다.",
+        "strike_type은 Land, Naval, Sub, Air Intercept 중 하나로 정합니다.",
+        "targets 목록의 표적 유닛 이름과 필요하면 target_side를 CMO에서 확인합니다."
+      ],
+      "safePattern": "표적을 배정하기 전에 ScenEdit_GetUnit으로 존재 여부를 확인하고, 찾지 못한 표적은 경고만 남겨 전체 미션 생성을 막지 않게 합니다.",
+      "aiHint": "AI에게 strike_type, target_side, 표적 목록을 분리해서 받게 하고, 표적이 애매하면 이름을 추측하지 말고 사용자에게 재확인하게 하세요.",
+      "checks": [
+        "ScenEdit_AssignUnitAsTarget의 인자 형식은 현재 CMO 빌드에서 콘솔 또는 이벤트 테스트 권장",
+        "flight_size와 oneway 속성이 해당 미션 타입에서 의도대로 반영되는지 확인 필요"
+      ]
+    },
+    "reference_point_add.tpl.lua": {
+      "title": "Reference Point Add guide",
+      "summary": "지정 Side에 Reference Point를 만들고, 선택적으로 잠금/강조/상대 위치 옵션을 붙이는 템플릿입니다.",
+      "beginnerNotes": [
+        "Reference Point는 순찰 구역, 이벤트 영역, 항로 같은 지리 기준점을 만드는 데 쓰입니다.",
+        "좌표는 직접 추측하기보다 CMO 지도에서 확인한 값을 사용하는 것이 안전합니다.",
+        "Side가 다르면 같은 이름의 RP라도 다른 객체로 취급될 수 있습니다."
+      ],
+      "prerequisites": [
+        "RP를 소유할 Side 이름을 확인합니다.",
+        "lat/lon 좌표를 CMO 지도 또는 기존 RP에서 확인합니다.",
+        "상대 위치 옵션을 쓸 경우 기준 유닛이나 기준점 이름을 먼저 확인합니다."
+      ],
+      "safePattern": "기존 RP 이름과 충돌하지 않는지 먼저 확인하고, 좌표는 CMO UI에서 검증된 값만 사용하세요.",
+      "aiHint": "AI에게 좌표를 창작하지 말고 CMO에서 만든 좌표나 RP 이름을 요구하게 하세요. 이름이 애매하면 ask-back을 우선합니다.",
+      "checks": [
+        "lat/lon 부호와 소수점 형식이 CMO Lua Console에서 기대대로 해석되는지 확인 필요",
+        "relativeto/bearing/distance 조합은 실제 엔진 테스트 권장"
+      ]
+    },
+    "unit_spawn.tpl.lua": {
+      "title": "Unit Spawn guide",
+      "summary": "현재 시나리오 DB의 플랫폼 DBID와 좌표를 사용해 새 유닛을 추가하는 템플릿입니다.",
+      "beginnerNotes": [
+        "새 항공기, 함정, 잠수함, 시설 등을 시나리오에 배치할 때 사용하는 기본 템플릿입니다.",
+        "DBID는 DB3K/CWDB 버전마다 달라질 수 있으므로 Database Viewer에서 확인해야 합니다.",
+        "항공기에는 Loadout ID가 필요할 수 있으며, 잘못된 loadout은 생성 실패나 의도와 다른 무장을 만들 수 있습니다."
+      ],
+      "prerequisites": [
+        "Side 이름, 유닛 이름, type, 플랫폼 DBID를 확인합니다.",
+        "lat/lon 또는 base 위치를 CMO UI에서 확인합니다.",
+        "항공기라면 Loadout ID와 기지/모함 배치 조건을 함께 확인합니다."
+      ],
+      "safePattern": "DBID/Loadout ID 출처를 주석이나 로그로 남기고, 생성 후 반환된 유닛 객체가 있는지 확인해 실패를 조용히 넘기지 않게 합니다.",
+      "aiHint": "AI에게 플랫폼 DBID, Loadout ID, 좌표 출처를 명시하게 하고, 하나라도 없으면 placeholder Lua 대신 확인 질문을 내도록 지시하세요.",
+      "checks": [
+        "ScenEdit_AddUnit의 type 값과 dbid가 현재 DB 버전에서 호환되는지 확인 필요",
+        "base와 lat/lon을 함께 줄 때 CMO가 어떤 위치를 우선하는지 엔진 테스트 권장"
+      ]
+    },
+    "event_simple.tpl.lua": {
+      "title": "Simple Event guide",
+      "summary": "CMO Event Editor 이벤트에 단일 Trigger와 Lua Script Action을 연결하는 기본 이벤트 템플릿입니다.",
+      "beginnerNotes": [
+        "이벤트는 Trigger가 조건을 감지하고 Action이 실제 Lua를 실행하는 구조입니다.",
+        "간단한 이벤트라도 반복 실행 여부를 잘못 정하면 같은 Lua가 여러 번 실행될 수 있습니다.",
+        "Lua Script Action 안의 코드는 별도로 paste-ready 검수와 CMO 엔진 테스트가 필요합니다."
+      ],
+      "prerequisites": [
+        "Event 이름과 Trigger 이름을 중복되지 않게 정합니다.",
+        "trigger.type과 trigger.opts는 CMO Event Editor에서 지원하는 값으로 준비합니다.",
+        "lua_script에는 검증된 Lua 본문만 넣습니다."
+      ],
+      "safePattern": "이벤트와 Trigger/Action 이름을 분리해 만들고, 반복 이벤트라면 KeyValue 또는 상태 체크로 중복 실행을 막으세요.",
+      "aiHint": "AI에게 Trigger type, trigger opts, Lua Action 본문을 분리해 출력하게 하고, trigger 옵션이 불명확하면 추측하지 말고 확인 질문을 하게 하세요.",
+      "checks": [
+        "ScenEdit_SetTrigger의 type별 opts 키가 현재 CMO 빌드와 맞는지 확인 필요",
+        "LuaScript Action 본문은 UI paste-ready gate와 별도로 CMO Event Editor에서 실행 테스트 권장"
+      ]
+    },
+    "event_regular_time.tpl.lua": {
+      "title": "Regular Time Event guide",
+      "summary": "정해진 초 단위 간격마다 Lua Script Action을 반복 실행하는 주기 이벤트 템플릿입니다.",
+      "beginnerNotes": [
+        "정찰 보고, 날씨 변화, 상태 점검처럼 일정 주기로 반복되는 자동화를 만들 때 사용합니다.",
+        "interval 값이 너무 짧으면 이벤트가 과도하게 자주 실행되어 성능이나 로그를 압박할 수 있습니다.",
+        "반복 실행되는 Lua는 반드시 중복 생성 방지 로직을 가져야 합니다."
+      ],
+      "prerequisites": [
+        "interval을 초 단위로 정합니다.",
+        "lua_script가 반복 실행되어도 안전한지 확인합니다.",
+        "Event 이름이 기존 이벤트와 충돌하지 않는지 확인합니다."
+      ],
+      "safePattern": "반복 Action 안에는 KeyValue, unit existence check, cooldown 같은 상태 가드를 넣고, 첫 테스트는 긴 interval로 시작하세요.",
+      "aiHint": "AI에게 interval 단위가 초임을 명시하게 하고, 반복 실행 시 중복 생성/중복 점수/중복 메시지를 막는 가드를 함께 요구하세요.",
+      "checks": [
+        "RegularTime Interval 단위와 최소 주기는 현재 CMO 빌드에서 확인 필요",
+        "반복 Lua가 Event Editor 안에서 장시간 실행될 때 로그/성능 영향 테스트 권장"
+      ]
+    },
+    "event_unit_detected.tpl.lua": {
+      "title": "Unit Detected Event guide",
+      "summary": "지정 Side가 특정 조건의 접촉을 탐지했을 때 Lua Action을 실행하는 감지 이벤트 템플릿입니다.",
+      "beginnerNotes": [
+        "적 항공기 탐지, 미사일 탐지, 함정 접촉 같은 상황에 반응하는 이벤트입니다.",
+        "DetectorSideID와 TargetFilter가 틀리면 이벤트가 전혀 발동하지 않거나 너무 넓게 발동할 수 있습니다.",
+        "MCL은 탐지 신뢰도 조건이므로 낮게 잡으면 불확실한 접촉에도 반응할 수 있습니다."
+      ],
+      "prerequisites": [
+        "탐지하는 Side 이름 또는 ID를 확인합니다.",
+        "TargetSide, TargetType 등 target_filter 값을 CMO Event Editor 기준으로 정합니다.",
+        "필요하면 lua_script 본문을 별도로 검증합니다."
+      ],
+      "safePattern": "TargetFilter를 좁게 시작하고, 이벤트 Action에서 접촉 유형과 Side를 다시 확인한 뒤 중요한 변경을 실행하세요.",
+      "aiHint": "AI에게 detector_side, TargetFilter, MCL 의미를 분리해 쓰게 하고, TargetType 값은 추측하지 말고 CMO UI 기준으로 확인하게 하세요.",
+      "checks": [
+        "DetectorSideID가 Side 이름을 받는지 GUID/ID를 받는지 현재 CMO 빌드에서 확인 필요",
+        "TargetFilter 키 이름과 TargetType 토큰은 실제 Event Editor 테스트 권장"
+      ]
+    },
+    "event_unit_enters_area.tpl.lua": {
+      "title": "Unit Enters Area Event guide",
+      "summary": "유닛이 지정 Reference Point polygon 영역에 들어왔을 때 Lua Action을 실행하는 구역 진입 이벤트 템플릿입니다.",
+      "beginnerNotes": [
+        "No-fly zone 침범, 기지 접근, 특정 해역 진입 같은 상황을 감지할 때 사용합니다.",
+        "Area는 좌표가 아니라 CMO에 이미 존재하는 Reference Point 이름 목록입니다.",
+        "RP 순서와 소유 Side가 틀리면 영역이 의도와 다르게 만들어질 수 있습니다."
+      ],
+      "prerequisites": [
+        "CMO 지도에서 영역을 구성할 RP를 만들고 이름을 확인합니다.",
+        "area_rps 목록의 RP가 같은 Side/맥락에 있는지 확인합니다.",
+        "TargetFilter가 너무 넓지 않은지 먼저 정합니다."
+      ],
+      "safePattern": "영역 RP는 CMO UI에서 직접 만든 이름만 사용하고, Action Lua 안에서도 대상 Side/UnitType을 재확인하세요.",
+      "aiHint": "AI에게 새 좌표를 발명하게 하지 말고, 사용자가 만든 RP 이름 목록을 요구하게 하세요. RP 이름이 누락되면 BLOCKER/ask-back으로 멈추게 합니다.",
+      "checks": [
+        "UnitEntersArea의 Area가 RP 이름 배열을 기대하는지 현재 CMO Event Editor에서 확인 필요",
+        "RP polygon 방향/순서가 이벤트 판정에 영향을 주는지 테스트 권장"
+      ]
+    },
+    "loadout_set.tpl.lua": {
+      "title": "Loadout Set guide",
+      "summary": "기존 유닛을 GUID 또는 이름으로 찾아 지정 Loadout ID를 적용하는 템플릿입니다.",
+      "beginnerNotes": [
+        "이미 배치된 항공기나 유닛의 무장 구성을 바꿀 때 사용합니다.",
+        "Loadout ID는 현재 시나리오 DB와 플랫폼에 맞아야 합니다.",
+        "유닛 이름이 중복될 수 있으므로 가능하면 GUID를 사용하세요."
+      ],
+      "prerequisites": [
+        "대상 유닛 GUID를 우선 확보합니다.",
+        "GUID가 없으면 Side 이름과 유닛 이름을 함께 확인합니다.",
+        "Loadout ID는 Database Viewer에서 현재 DB 기준으로 확인합니다."
+      ],
+      "safePattern": "GUID → side+name → name 순서로 조회하고, 유닛이 없으면 실패 메시지만 남기세요. Loadout 변경 뒤 TimeToReady가 의도와 맞는지 확인합니다.",
+      "aiHint": "AI에게 unit GUID, Side, Loadout ID 출처를 명시하게 하고, Loadout ID가 없으면 placeholder 대신 확인 질문을 하게 하세요.",
+      "checks": [
+        "ScenEdit_SetLoadout의 unitName에 GUID 전달이 현재 CMO 빌드에서 정상인지 확인 필요",
+        "TimeToReady_Minutes 값이 즉시/지연 준비 상태에 어떤 영향을 주는지 엔진 테스트 권장"
+      ]
+    },
+    "zone_add.tpl.lua": {
+      "title": "No-Nav / Exclusion Zone guide",
+      "summary": "Reference Point 목록을 사용해 No-Nav Zone 또는 Exclusion Zone을 추가하는 템플릿입니다.",
+      "beginnerNotes": [
+        "Zone은 유닛 이동 제한, 침범 감지, AI 행동 제약에 영향을 줄 수 있는 공간 규칙입니다.",
+        "area에는 좌표가 아니라 이미 만든 RP 이름 목록을 넣습니다.",
+        "No-Nav와 Exclusion은 목적이 다르므로 kind를 먼저 정확히 정해야 합니다."
+      ],
+      "prerequisites": [
+        "Zone을 소유할 Side 이름을 확인합니다.",
+        "영역을 구성할 RP 이름 목록을 CMO 지도에서 확인합니다.",
+        "exclusion zone이면 affects 값이 어떤 대상에 적용되는지 확인합니다."
+      ],
+      "safePattern": "RP polygon을 CMO UI에서 먼저 확인하고, 삭제보다 새 이름으로 테스트 Zone을 만든 뒤 의도대로 동작하는지 검증하세요.",
+      "aiHint": "AI에게 RP 좌표를 새로 만들게 하지 말고 area RP 이름 목록과 kind를 사용자에게 확인하게 하세요.",
+      "checks": [
+        "ScenEdit_AddNoNavZone과 ScenEdit_AddExclusionZone의 area 키 형식은 현재 CMO 빌드에서 확인 필요",
+        "affects 값의 허용 토큰은 실제 Zone UI 또는 Lua Console에서 테스트 권장"
+      ]
+    },
+    "event_iads_ambush.tpl.lua": {
+      "title": "IADS Ambush guide",
+      "summary": "SAM/레이더 유닛이 평소에는 Passive로 숨어 있다가 지정 접촉 유형이 교전거리 안에 들어오면 Radar=Active로 전환하는 매복 이벤트입니다.",
+      "beginnerNotes": [
+        "레이더 매복 전술을 구현해 적이 방공망 위치를 미리 파악하기 어렵게 만듭니다.",
+        "항공기뿐 아니라 Missile, Ship 등 여러 접촉 유형을 함께 감시할 수 있습니다.",
+        "여러 SAM/레이더 이름 또는 GUID를 목록으로 넣어 한 번에 관리할 수 있습니다."
+      ],
+      "prerequisites": [
+        "방어 측 Side 이름과 감시할 SAM/레이더 유닛 이름 또는 GUID를 준비합니다.",
+        "교전거리 engage_range는 해리(nm) 단위입니다.",
+        "반응할 접촉 유형은 CMO 접촉 분류 문자열과 맞춰 입력합니다."
+      ],
+      "safePattern": "VP_GetSide():contactsBy()를 먼저 시도하고 실패하면 ScenEdit_GetContacts()로 폴백합니다. 상태는 KeyValue에 저장해 불필요한 EMCON 반복 변경을 줄입니다.",
+      "aiHint": "AI에게 unit_ids와 target_types를 배열로 출력하게 하고, 단일 값만 있는 경우에도 배열로 정규화하도록 요구하세요.",
+      "checks": []
+    },
+    "event_victory_cond.tpl.lua": {
+      "title": "Victory / Scoring guide",
+      "summary": "사용자가 작성한 Lua 조건식이 true가 되면 점수를 부여하고, 필요하면 시나리오를 종료합니다.",
+      "beginnerNotes": [
+        "적 핵심 시설 파괴, 특정 점수 도달, 특정 이벤트 완료 같은 사용자 정의 승리 조건을 만들 때 사용합니다.",
+        "반복 실행되면 점수가 계속 누적될 수 있으므로 1회성 여부를 먼저 정해야 합니다.",
+        "end_scenario를 켜면 조건 달성 즉시 시나리오가 종료됩니다."
+      ],
+      "prerequisites": [
+        "점수를 받을 Side 이름을 확인합니다.",
+        "check_logic은 return true/false 형태로 끝나는 조건식이어야 합니다."
+      ],
+      "safePattern": "조건이 충분히 좁게 잡혔는지 먼저 콘솔에서 테스트하고, 종료 함수는 마지막 단계에서만 켜세요.",
+      "aiHint": "AI에게 점수 변경 로직과 플레이어 표시 메시지를 분리해서 쓰게 하면 검수하기 쉽습니다.",
+      "checks": []
+    },
+    "event_csar.tpl.lua": {
+      "title": "CSAR Auto-Spawner guide",
+      "summary": "항공기 격추 시 생존 확률을 굴려 조종사 또는 구명보트를 만들고 구조 요청 메시지를 출력합니다.",
+      "beginnerNotes": [
+        "아군 항공기가 격추된 뒤 조종사가 탈출해 구조를 기다리는 상황을 자동으로 연출합니다.",
+        "추락 지점이 바다면 구명보트, 육지면 조종사 유닛을 생성합니다.",
+        "무전 메시지가 함께 나와 CSAR 임무의 몰입감을 높입니다."
+      ],
+      "prerequisites": [
+        "격추 감시 대상 Side와 구조 메시지를 받을 Side를 확인합니다.",
+        "Downed Pilots 같은 생존자 전용 Side를 시나리오에 만들지 여부를 먼저 정합니다.",
+        "생존자/구명보트 DBID가 현재 DB 버전에서 유효한지 확인합니다."
+      ],
+      "safePattern": "ScenEdit_UnitX()는 이벤트 액션 안에서만 유효하므로 Lua Console 단독 테스트와 이벤트 실행 결과를 구분하세요.",
+      "aiHint": "AI에게 이벤트 트리거가 UnitDestroyed인지, 대상이 Aircraft인지, 생존자 Side를 어떻게 처리할지 먼저 확인하게 하세요.",
+      "checks": [
+        "Downed Pilots Side가 없을 때 ScenEdit_AddUnit 동작 방식 확인 필요",
+        "DBID 2441, 2553이 현재 DB3K/CWDB 버전에서 유효한지 확인 필요"
+      ]
+    },
+    "event_radio_message.tpl.lua": {
+      "title": "Radio / Telex Message guide",
+      "summary": "플레이어에게 일반 무전 또는 ACP126 스타일 전문 메시지를 출력하고 현재 시나리오 시간을 표시합니다.",
+      "beginnerNotes": [
+        "경고, 작전 지시, 정보 보고 같은 텍스트를 플레이어에게 보여줄 때 사용합니다.",
+        "radio는 주파수/밴드가 보이는 무전 형식, telex는 수신국/발신국/우선순위가 있는 전문 형식입니다.",
+        "현재 게임 시간이 메시지에 들어가 작전 분위기를 강화합니다."
+      ],
+      "prerequisites": [
+        "메시지를 받을 Side 이름을 확인합니다.",
+        "본문에 HTML을 쓸 경우 태그가 너무 길거나 깨지지 않는지 CMO 메시지 창에서 확인합니다."
+      ],
+      "safePattern": "플레이어에게 보이는 문구와 내부 이벤트 이름을 분리하고, 반복 이벤트라면 같은 메시지가 과도하게 반복되지 않게 주기를 조정하세요.",
+      "aiHint": "AI에게 radio/telex 중 어떤 형식인지 먼저 고르게 하고, 표시 대상 Side와 메시지 목적을 분리해 작성하게 하세요.",
+      "checks": [
+        "os.date가 현재 CMO Lua 샌드박스에서 허용되는지 실제 엔진 테스트 필요"
+      ]
+    },
+    "event_logistics.tpl.lua": {
+      "title": "Logistics Control guide",
+      "summary": "기지 또는 항공모함의 탄약고를 비우거나 특정 무장을 지정 수량만큼 보급하는 물류 이벤트입니다.",
+      "beginnerNotes": [
+        "특정 기지의 탄약고를 초기화하거나, 원하는 무기 DBID를 일정 수량 보급할 때 사용합니다.",
+        "보급할 무기의 DBID는 현재 시나리오 DB의 Database Viewer에서 확인해야 합니다.",
+        "최신 CMO API를 쓰므로 게임 빌드가 오래되면 동작하지 않을 수 있습니다."
+      ],
+      "prerequisites": [
+        "대상 기지/항공모함 이름 또는 GUID를 준비합니다.",
+        "distribute 모드는 weapon_dbid와 quantity가 필요합니다.",
+        "CMO v1143.1 이상 API 사용 가능 여부를 확인합니다."
+      ],
+      "safePattern": "clear 모드는 되돌리기 어렵기 때문에 테스트 시나리오에서 먼저 실행하고, distribute 모드는 DBID와 수량을 로그 메시지로 남기세요.",
+      "aiHint": "AI에게 clear/distribute 모드를 먼저 고르게 하고, weapon DBID를 추측하지 못하게 지시하세요.",
+      "checks": [
+        "ScenEdit_DistributeWeaponAtAirbase가 항공모함에도 적용되는지 엔진 테스트 필요",
+        "ScenEdit_ClearAllMagazines는 구버전 CMO에서 없을 수 있으므로 버전 확인 필요"
+      ]
+    },
+    "side_posture.tpl.lua": {
+      "title": "Side Posture guide",
+      "summary": "한 Side가 다른 Side를 Friendly, Neutral, Unfriendly, Hostile 중 어떤 관계로 볼지 설정하는 템플릿입니다.",
+      "beginnerNotes": [
+        "Side posture는 탐지, 교전, 임무 행동에 직접 영향을 줄 수 있는 관계 설정입니다.",
+        "방향성이 중요합니다. Blue -> Red를 Hostile로 바꾸는 것과 Red -> Blue를 바꾸는 것은 별도 설정일 수 있습니다.",
+        "Side 이름과 posture 값은 CMO 시나리오에 실제 존재하는 값만 사용해야 합니다."
+      ],
+      "prerequisites": [
+        "기준 Side 이름을 확인합니다.",
+        "관계를 바꿀 other_side 이름 목록을 확인합니다.",
+        "Friendly, Neutral, Unfriendly, Hostile 또는 현재 CMO가 받는 posture 토큰을 확인합니다."
+      ],
+      "safePattern": "테스트 시나리오에서 한 관계씩 바꾸고, 변경 전후 Side 관계를 로그로 남기세요. 여러 Side를 한 번에 바꾸는 경우 각 항목의 방향을 명확히 분리합니다.",
+      "aiHint": "AI에게 적대/우호 관계를 추측하게 하지 말고 기준 Side, 대상 Side, 목표 posture를 사용자에게 확인하게 하세요.",
+      "checks": [
+        "ScenEdit_SetSidePosture가 현재 CMO 빌드에서 어떤 posture 토큰을 허용하는지 확인 필요",
+        "Side A -> Side B 변경이 반대 방향 관계까지 자동 변경하는지 엔진 테스트 권장"
+      ]
+    },
+    "event_contact_emcon.tpl.lua": {
+      "title": "Contact EMCON guide",
+      "summary": "지정 Side가 특정 접촉 유형이나 posture를 감지하면 EMCON 값을 바꾸는 이벤트 템플릿입니다.",
+      "beginnerNotes": [
+        "접촉 기반 레이더 켜기, 통신 침묵 해제, 방공망 활성화 같은 상황에 사용합니다.",
+        "target_posture 값은 H 같은 축약 코드와 Hostile 같은 표시 방식이 시나리오/빌드에 따라 다를 수 있습니다.",
+        "EMCON 변경은 적에게 노출되는 행동이므로 반복 실행 여부와 조건을 신중히 잡아야 합니다."
+      ],
+      "prerequisites": [
+        "접촉을 감시할 Side 이름을 확인합니다.",
+        "target_type과 target_posture를 CMO 접촉 목록에서 확인합니다.",
+        "EMCON type, id, value가 현재 UI에서 의도한 대상과 값인지 확인합니다."
+      ],
+      "safePattern": "VP_GetSide():contactsBy()를 먼저 쓰고 실패하면 ScenEdit_GetContacts()로 폴백합니다. EMCON 값은 문자열 그대로 로그에 남기고, 반복 이벤트라면 중복 변경을 피할 조건을 둡니다.",
+      "aiHint": "AI에게 contact type, posture, EMCON value를 발명하지 못하게 하고, 누락된 값은 ask-back으로 확인하게 하세요.",
+      "checks": [
+        "VP_GetSide():contactsBy(type)가 현재 CMO 빌드에서 사용 가능한지 확인 필요",
+        "target_posture 비교 값이 H/U/N/F 코드인지 전체 문자열인지 엔진 테스트 필요"
+      ]
+    },
+    "unit_spawn_random.tpl.lua": {
+      "title": "Random Spawn Unit guide",
+      "summary": "지정 bounding box 안에서 지형 조건을 만족하는 좌표를 찾아 DBID 기반 유닛을 무작위 배치하는 템플릿입니다.",
+      "beginnerNotes": [
+        "선박은 바다, 시설은 육지처럼 terrain 조건을 맞춰 무작위 배치할 때 사용합니다.",
+        "lat/lon 범위가 넓으면 의도하지 않은 곳에 생성될 수 있고, 좁으면 유효 좌표를 못 찾을 수 있습니다.",
+        "Platform DBID와 Loadout ID는 현재 시나리오 DB 기준으로 확인해야 합니다."
+      ],
+      "prerequisites": [
+        "생성할 Side, Unit type, Platform DBID를 확인합니다.",
+        "지도에서 lat_min, lat_max, lon_min, lon_max 범위를 직접 확인합니다.",
+        "항공기라면 Loadout ID가 필요한지 Database Viewer에서 확인합니다."
+      ],
+      "safePattern": "먼저 작은 테스트 범위에서 max_attempts를 낮게 잡아 동작을 확인하고, 실제 적용 전 생성 좌표와 DBID를 로그로 남기세요.",
+      "aiHint": "AI에게 좌표 범위나 DBID를 추측하게 하지 말고, 지도에서 확인한 bounding box와 Database Viewer 출처를 요구하게 하세요.",
+      "checks": [
+        "World_GetElevation 반환값 기준으로 sea/land 판정이 원하는 지형과 맞는지 테스트 필요",
+        "ScenEdit_AddUnit에 loadoutid를 생략한 항공기 생성 결과 확인 권장"
+      ]
+    },
+    "event_teleport.tpl.lua": {
+      "title": "Teleport / Relocate guide",
+      "summary": "기존 유닛 GUID 목록을 지정 좌표 박스 안의 무작위 위치로 이동시키는 이벤트 템플릿입니다.",
+      "beginnerNotes": [
+        "이미 배치된 유닛을 시나리오 중 다른 위치로 옮길 때 사용합니다.",
+        "대상은 이름보다 GUID로 지정하는 것이 안전합니다.",
+        "require_water 또는 require_land를 켜면 World_GetElevation 결과에 따라 좌표를 다시 뽑습니다."
+      ],
+      "prerequisites": [
+        "이동 대상 유닛 GUID 목록을 CMO에서 복사합니다.",
+        "이동 가능한 lat/lon bounding box를 지도에서 확인합니다.",
+        "물 위 또는 육지 조건이 필요한지 정합니다."
+      ],
+      "safePattern": "실전 시나리오 전에 단일 GUID와 작은 테스트 구역으로 검증하고, 이동 전후 좌표를 메시지나 로그로 확인하세요.",
+      "aiHint": "AI에게 유닛 이름만으로 이동 대상을 추측하게 하지 말고 GUID와 좌표 범위를 사용자에게 확인하게 하세요.",
+      "checks": [
+        "ScenEdit_SetUnit({guid, latitude, longitude}) 형식이 현재 CMO 빌드에서 정상인지 확인 필요",
+        "World_GetElevation이 nil을 반환할 때의 폴백 동작을 엔진 테스트 권장"
+      ]
+    },
+    "event_dbid_score.tpl.lua": {
+      "title": "DBID Scoreboard guide",
+      "summary": "격파된 유닛의 type과 DBID 조합을 기준으로 점수를 부여하고 메시지를 출력하는 이벤트 템플릿입니다.",
+      "beginnerNotes": [
+        "특정 플랫폼을 격파했을 때만 점수를 주고 싶을 때 사용합니다.",
+        "scores 테이블은 Aircraft, Ship, Facility 같은 unit type 아래에 DBID별 점수를 넣습니다.",
+        "DBID는 현재 시나리오 DB 기준이므로 다른 DB 버전에서 그대로 쓰면 틀릴 수 있습니다."
+      ],
+      "prerequisites": [
+        "점수를 받을 Side 이름을 확인합니다.",
+        "대상 unit type과 DBID를 Database Viewer에서 확인합니다.",
+        "UnitDestroyed 이벤트가 감시할 target_side 범위를 정합니다."
+      ],
+      "safePattern": "scores 테이블에는 확인된 DBID만 넣고, 점수 부여 메시지에 unit type과 DBID를 함께 출력해 검수할 수 있게 하세요.",
+      "aiHint": "AI에게 DBID를 추측하지 못하게 하고, Database Viewer 출처와 unit type 분류를 함께 요구하게 하세요.",
+      "checks": [
+        "ScenEdit_UnitX()의 dbid/type 필드 이름이 현재 CMO 빌드에서 일치하는지 확인 필요",
+        "UnitDestroyed trigger의 TargetSide 필터가 Any 값을 받는지 엔진 테스트 필요"
+      ]
+    },
+    "event_cargo_drop.tpl.lua": {
+      "title": "Cargo Drop guide",
+      "summary": "지정 수송 유닛이 RP 영역에 들어오면 ScenEdit_UnloadCargo로 화물을 내리는 이벤트 템플릿입니다.",
+      "beginnerNotes": [
+        "수송기나 수송선이 지정 구역에 도착했을 때 자동 하역을 처리합니다.",
+        "drop_zone은 좌표가 아니라 CMO에서 만든 Reference Point 이름 배열입니다.",
+        "대상 유닛은 GUID를 우선 사용하고, 이름을 쓸 때는 Side와 함께 확인해야 합니다."
+      ],
+      "prerequisites": [
+        "수송 유닛 GUID 또는 정확한 이름을 확인합니다.",
+        "UnitEntersArea에 사용할 RP 영역 목록을 CMO 지도에서 확인합니다.",
+        "화물이 실제로 유닛에 적재되어 있는지 확인합니다."
+      ],
+      "safePattern": "GUID 조회를 먼저 시도하고 실패할 때만 side+name으로 폴백합니다. 하역 성공 메시지에는 유닛 이름과 구역명을 포함해 검수하기 쉽게 만드세요.",
+      "aiHint": "AI에게 drop zone 좌표를 만들게 하지 말고, 기존 RP 이름 목록과 수송 유닛 GUID를 사용자에게 요청하게 하세요.",
+      "checks": [
+        "UnitEntersArea trigger의 area 값이 RP 이름 배열을 기대하는지 현재 CMO 빌드에서 확인 필요",
+        "ScenEdit_UnloadCargo(unit.guid)가 수송기/수송선 양쪽에서 정상 동작하는지 테스트 권장"
+      ]
+    },
+    "mission_support.tpl.lua": {
+      "title": "Support Mission guide",
+      "summary": "Reference Point 영역을 사용해 항공/해상 지원 임무를 생성하고 support mission 속성을 설정하는 템플릿입니다.",
+      "beginnerNotes": [
+        "지원 임무는 CAP, AEW, tanker, patrol station처럼 특정 구역을 유지하는 임무에 가깝습니다.",
+        "support_area_rps에는 좌표가 아니라 CMO에서 만든 RP 이름 목록을 넣습니다.",
+        "one-third rule, station altitude, loop 설정은 실제 임무 행동에 영향을 줄 수 있습니다."
+      ],
+      "prerequisites": [
+        "임무를 만들 Side 이름을 확인합니다.",
+        "지원 구역을 구성할 RP 이름 목록을 CMO 지도에서 확인합니다.",
+        "support_type과 altitude/loop 값이 현재 CMO mission UI 의미와 맞는지 확인합니다."
+      ],
+      "safePattern": "RP lookup 결과가 비어 있으면 임무 구역을 설정하지 말고 오류를 확인하세요. 테스트 임무 이름으로 먼저 만들고, CMO Mission Editor에서 support zone과 altitude 값을 검수합니다.",
+      "aiHint": "AI에게 RP 좌표를 발명하게 하지 말고, Side 이름과 support_area_rps를 사용자에게 확인하게 하세요.",
+      "checks": [
+        "supportmission.supportzone에 RP 객체 목록을 넣는 형식이 현재 CMO 빌드에서 정상인지 확인 필요",
+        "support_type 값이 air/sea 등 현재 UI에서 허용되는 문자열과 일치하는지 엔진 테스트 권장"
+      ]
+    },
+    "mission_cargo.tpl.lua": {
+      "title": "Cargo Mission guide",
+      "summary": "Pickup/Dropoff RP와 cargo item 목록을 사용해 cargo mission을 생성하는 템플릿입니다.",
+      "beginnerNotes": [
+        "수송 임무는 출발 지점, 도착 지점, 화물 목록이 모두 맞아야 의미 있게 작동합니다.",
+        "pickup_rp와 dropoff_rp는 CMO 지도에 존재하는 RP 이름이어야 합니다.",
+        "cargo_items의 dbid나 guid 값은 cargo 대상과 현재 DB 기준에 맞아야 합니다."
+      ],
+      "prerequisites": [
+        "임무 Side와 cargo_type을 확인합니다.",
+        "Pickup RP와 Dropoff RP 이름을 CMO 지도에서 확인합니다.",
+        "cargo_items를 쓸 경우 type, dbid, guid 출처를 확인합니다."
+      ],
+      "safePattern": "pickup/dropoff RP를 먼저 CMO UI에서 만든 뒤 템플릿을 적용하고, addAssignedCargo가 없는 빌드에서는 cargo item 추가가 생략될 수 있음을 로그로 확인하세요.",
+      "aiHint": "AI에게 cargo DBID, GUID, RP 이름을 추측하게 하지 말고, 각 값의 출처를 사용자에게 요구하게 하세요.",
+      "checks": [
+        "__m:addAssignedCargo(type, dbid, guid)가 현재 CMO 빌드에서 사용 가능한지 확인 필요",
+        "pickuppoint/dropoffpoint가 RP 이름 문자열을 받는지 또는 RP 객체가 필요한지 엔진 테스트 권장"
+      ]
+    },
+    "mission_ferry.tpl.lua": {
+      "title": "Ferry Mission guide",
+      "summary": "Embarkation RP와 Destination RP를 사용해 ferry mission을 생성하고 one-way 여부를 설정하는 템플릿입니다.",
+      "beginnerNotes": [
+        "Ferry mission은 유닛을 한 지점에서 다른 지점으로 이동시키는 수송/이동 성격의 임무입니다.",
+        "embarkation_rp와 destination_rp는 실제 RP 이름이어야 합니다.",
+        "one_way를 켜면 왕복이 아니라 편도 이동 의도로 해석될 수 있습니다."
+      ],
+      "prerequisites": [
+        "임무를 만들 Side 이름과 ferry_type을 확인합니다.",
+        "출발 RP와 도착 RP 이름을 CMO 지도에서 확인합니다.",
+        "minimum/maximum/group size와 altitude/depth 값이 필요한지 정합니다."
+      ],
+      "safePattern": "출발/도착 RP를 서로 바꾸지 않도록 이름을 명확히 하고, 테스트 임무에서 one-way 옵션과 고도/심도 값을 먼저 확인하세요.",
+      "aiHint": "AI에게 RP 이름이나 방향을 추측하게 하지 말고, embarkation과 destination을 분리해서 되묻게 하세요.",
+      "checks": [
+        "ferrymission.embarkationpoint/destinationpoint 키가 현재 CMO 빌드에서 기대하는 이름인지 확인 필요",
+        "oneway boolean 값이 CMO Mission Editor 표시와 일치하는지 엔진 테스트 권장"
+      ]
+    },
+    "mission_mine.tpl.lua": {
+      "title": "Mine Mission guide",
+      "summary": "RP 영역을 사용해 mine mission을 만들고 기뢰 밀도, 개수, 무작위 배치 여부를 설정하는 템플릿입니다.",
+      "beginnerNotes": [
+        "Mine mission은 지정된 RP 다각형 영역 안에 기뢰 관련 임무 설정을 구성합니다.",
+        "minefield_area_rps에는 실제 RP 이름 배열을 넣어야 합니다.",
+        "density와 number_of_mines는 시나리오 난이도와 통항 안전에 큰 영향을 줍니다."
+      ],
+      "prerequisites": [
+        "임무 Side와 mine_type을 확인합니다.",
+        "기뢰 구역을 구성할 RP 이름 목록을 CMO 지도에서 확인합니다.",
+        "density, number_of_mines, randomize 값을 시나리오 의도에 맞게 정합니다."
+      ],
+      "safePattern": "기뢰 구역 RP polygon을 먼저 시각적으로 검수하고, number_of_mines를 낮게 둔 테스트 임무로 동작을 확인한 뒤 실제 값을 적용하세요.",
+      "aiHint": "AI에게 minefield RP나 기뢰 수량을 임의로 만들게 하지 말고, 지도와 시나리오 의도에서 확인된 값을 요구하게 하세요.",
+      "checks": [
+        "minemission.minefieldarea에 RP 객체 목록을 넣는 형식이 현재 CMO 빌드에서 정상인지 확인 필요",
+        "density/randomize 키가 현재 CMO Lua mission wrapper에서 반영되는지 엔진 테스트 권장"
+      ]
+    },
+    "kvstore_set.tpl.lua": {
+      "title": "KeyValue State guide",
+      "summary": "Scenario KeyValue 저장소에 하나 이상의 key/value 쌍을 기록하는 템플릿입니다.",
+      "beginnerNotes": [
+        "KeyValue는 이벤트가 이미 실행됐는지, 특정 단계가 끝났는지 같은 시나리오 상태 플래그로 자주 씁니다.",
+        "key 이름이 겹치면 서로 다른 이벤트가 같은 상태를 공유해 의도치 않게 막힐 수 있습니다.",
+        "value는 문자열로 저장되므로 숫자/boolean 의미를 쓸 때도 비교 방식을 명확히 해야 합니다."
+      ],
+      "prerequisites": [
+        "사용할 key 이름 규칙을 정합니다.",
+        "기존 이벤트나 Lua가 같은 key를 쓰는지 검색합니다.",
+        "value를 어떤 문자열로 비교할지 정합니다."
+      ],
+      "safePattern": "key에는 이벤트나 기능 이름을 포함해 충돌을 줄이고, 값을 바꾸기 전후에 ScenEdit_GetKeyValue로 확인할 수 있게 로그를 남기세요.",
+      "aiHint": "AI에게 짧고 일반적인 key를 만들게 하지 말고, 시나리오/이벤트 목적이 드러나는 고유 key를 사용자와 합의하게 하세요.",
+      "checks": [
+        "ScenEdit_SetKeyValue가 현재 CMO 빌드에서 값을 문자열로 저장하는지 확인 필요",
+        "같은 key를 여러 이벤트가 공유할 때 초기화/재실행 조건을 엔진 테스트 권장"
+      ]
+    },
+    "event_kv_flag.tpl.lua": {
+      "title": "One-Shot KeyValue Event guide",
+      "summary": "반복 가능한 이벤트 안에서 KeyValue 플래그를 확인해 사용자 Lua를 한 번만 실행하도록 막는 템플릿입니다.",
+      "beginnerNotes": [
+        "CMO 이벤트 자체는 repeatable이어도 내부 KeyValue가 1이면 즉시 return해서 중복 실행을 막습니다.",
+        "kv_key가 너무 일반적이면 다른 이벤트와 충돌해 이벤트가 실행되지 않을 수 있습니다.",
+        "사용자 Lua가 실패해도 마지막에 플래그가 설정되면 재시도가 막힐 수 있습니다."
+      ],
+      "prerequisites": [
+        "고유한 kv_key를 정합니다.",
+        "트리거 type/name/opts를 CMO Event Editor 의미와 맞게 확인합니다.",
+        "사용자 Lua가 성공했을 때만 플래그를 세워야 하는지 정합니다."
+      ],
+      "safePattern": "사용자 Lua 본문에는 성공 조건을 명확히 두고, 플래그 설정 전후에 로그 메시지를 남겨 중복 실행 방지 상태를 추적하세요.",
+      "aiHint": "AI에게 kv_key와 trigger 옵션을 추측하게 하지 말고, 재실행 가능성 및 실패 시 재시도 정책을 먼저 확인하게 하세요.",
+      "checks": [
+        "Trigger opts의 Interval/interval 대소문자가 현재 CMO trigger API에서 어떻게 처리되는지 확인 필요",
+        "사용자 Lua 오류 발생 시 플래그 설정 위치가 재시도 정책과 맞는지 엔진 테스트 권장"
+      ]
+    },
+    "event_unit_destroyed.tpl.lua": {
+      "title": "Unit Destroyed Scoring Event guide",
+      "summary": "UnitDestroyed 트리거로 특정 Side/종류/DBID 대상이 격파될 때 점수를 더하고 메시지를 보내는 이벤트 템플릿입니다.",
+      "beginnerNotes": [
+        "TargetSide, TargetType, TargetSubType, SpecificUnitClass는 실제 CMO 필터 값과 DBID를 사용해야 합니다.",
+        "isrepeatable이 true이면 조건에 맞는 여러 격파가 모두 점수로 누적될 수 있습니다.",
+        "points와 on_destroyed_message는 플레이어 피드백과 승리 조건에 직접 영향을 줍니다."
+      ],
+      "prerequisites": [
+        "점수를 받을 Side 이름을 확인합니다.",
+        "target_dbid와 target_type_id를 Database Viewer 또는 실제 시나리오 객체 기준으로 확인합니다.",
+        "반복 점수 부여가 의도인지, 한 번만 지급해야 하는지 결정합니다."
+      ],
+      "safePattern": "작은 테스트 점수와 명확한 로그 메시지로 먼저 실행하고, TargetFilter가 의도한 대상에만 반응하는지 CMO Event Editor와 Lua Console에서 확인하세요.",
+      "aiHint": "AI에게 DBID, TargetType, Side 이름을 추측하게 하지 말고, 점수 반복 여부와 메시지 내용을 사용자에게 확인하게 하세요.",
+      "checks": [
+        "TargetFilter의 TargetType/TargetSubType/SpecificUnitClass 조합이 현재 CMO 빌드에서 의도한 대상을 잡는지 확인 필요",
+        "반복 격파 이벤트가 점수를 중복 지급해도 되는지 엔진 테스트 권장"
+      ]
+    },
+    "event_unit_damaged.tpl.lua": {
+      "title": "Unit Damaged Event guide",
+      "summary": "UnitDamaged 트리거로 특정 대상이 지정 피해율에 도달했을 때 선택 Lua action을 실행하는 이벤트 템플릿입니다.",
+      "beginnerNotes": [
+        "DamagePercent는 트리거 기준이므로 너무 낮으면 의도보다 자주 발동할 수 있습니다.",
+        "TargetSide, TargetType, SpecificUnitClass는 실제 Side와 DBID 기준으로 확인해야 합니다.",
+        "lua_script를 붙이면 단순 감지 이벤트가 실제 시나리오 상태 변경 이벤트가 됩니다."
+      ],
+      "prerequisites": [
+        "감시할 Side와 대상 종류, DBID를 확인합니다.",
+        "damage_percent 기준이 CMO 이벤트 트리거 의미와 맞는지 확인합니다.",
+        "반복 가능 이벤트인지, 첫 피해 감지만 필요한지 결정합니다."
+      ],
+      "safePattern": "damage_percent를 보수적으로 설정하고, lua_script가 있다면 먼저 로그만 출력하는 버전으로 트리거 범위를 확인하세요.",
+      "aiHint": "AI에게 피해율이나 DBID를 임의로 정하게 하지 말고, CMO에서 확인한 TargetFilter와 반복 정책을 명시하게 하세요.",
+      "checks": [
+        "UnitDamaged 트리거의 DamagePercent 비교 방식이 현재 CMO 빌드에서 기대와 일치하는지 확인 필요",
+        "isrepeatable=true일 때 같은 유닛 피해 변화가 여러 번 Lua action을 실행하는지 엔진 테스트 권장"
+      ]
+    },
+    "event_missions_toggle.tpl.lua": {
+      "title": "Mission Toggle Event guide",
+      "summary": "하나의 이벤트 트리거가 발생했을 때 여러 Mission을 일괄 활성화 또는 비활성화하는 이벤트 템플릿입니다.",
+      "beginnerNotes": [
+        "activate_missions와 deactivate_missions에는 CMO Mission Editor에 실제 존재하는 Mission 이름을 넣어야 합니다.",
+        "trigger.type/name/opts는 CMO Event Editor의 Trigger 의미와 맞아야 합니다.",
+        "isrepeatable을 켜면 같은 Mission 상태 전환이 반복될 수 있습니다."
+      ],
+      "prerequisites": [
+        "대상 Side 이름과 Mission 이름 목록을 확인합니다.",
+        "트리거 종류와 옵션이 현재 CMO 이벤트 API에서 유효한지 확인합니다.",
+        "활성화 목록과 비활성화 목록에 같은 Mission이 동시에 들어가지 않게 정리합니다."
+      ],
+      "safePattern": "먼저 테스트 Mission 이름 하나로 토글을 검증하고, 성공 후 여러 Mission 목록으로 확장하세요. 메시지를 남겨 어떤 전환이 실행됐는지 추적합니다.",
+      "aiHint": "AI에게 Mission 이름이나 trigger opts를 만들어내게 하지 말고, 활성화/비활성화 목록을 사용자에게 명확히 분리해 확인하게 하세요.",
+      "checks": [
+        "ScenEdit_SetMission의 isactive 변경이 현재 CMO 빌드에서 해당 Mission 타입에 정상 반영되는지 확인 필요",
+        "반복 이벤트에서 이미 활성/비활성 상태인 Mission을 다시 설정해도 문제가 없는지 엔진 테스트 권장"
+      ]
+    },
+    "event_escalation.tpl.lua": {
+      "title": "Escalation Event guide",
+      "summary": "트리거 발생 시 Side posture와 Doctrine 설정, 플레이어 메시지를 함께 바꾸는 긴장도 상승 이벤트 템플릿입니다.",
+      "beginnerNotes": [
+        "Posture는 방향성이 있으므로 side와 other_side 순서를 바꾸면 의미가 달라집니다.",
+        "Doctrine settings는 현재 CMO UI/API에서 허용되는 필드 이름과 값만 사용해야 합니다.",
+        "한 번 실행되는 escalation인지 반복 가능한 상태 전환인지 먼저 결정해야 합니다."
+      ],
+      "prerequisites": [
+        "변경할 모든 Side 이름과 상대 Side 이름을 확인합니다.",
+        "posture 값과 doctrine settings를 CMO Doctrine/EMCON UI 기준으로 확인합니다.",
+        "메시지를 받을 Side와 텍스트가 플레이어에게 공개되어도 되는지 확인합니다."
+      ],
+      "safePattern": "Posture 변경과 Doctrine 변경을 작은 테스트 이벤트로 분리해 먼저 검증한 뒤, escalation 이벤트에 묶으세요.",
+      "aiHint": "AI에게 posture나 doctrine 값을 추측하게 하지 말고, 방향성(side -> other_side)과 적용 범위를 사용자에게 되묻게 하세요.",
+      "checks": [
+        "ScenEdit_SetSidePosture의 side/other_side 방향이 의도한 외교 관계 변화와 일치하는지 확인 필요",
+        "ScenEdit_SetDoctrine settings 객체가 현재 CMO 빌드에서 허용되는 필드만 포함하는지 엔진 테스트 권장"
+      ]
+    },
+    "weather_random.tpl.lua": {
+      "title": "Random Weather guide",
+      "summary": "지정한 범위 안에서 온도, 강수, 해상 상태, 구름 값을 무작위로 골라 ScenEdit_SetWeather에 적용하는 템플릿입니다.",
+      "beginnerNotes": [
+        "기상 값은 전장 전체에 영향을 줄 수 있어 항공/해상 작전에 큰 변화를 줄 수 있습니다.",
+        "temp_min/max와 sea_state_min/max가 너무 넓으면 의도보다 과격한 기상이 나올 수 있습니다.",
+        "seed를 고정하면 재현 가능한 테스트가 가능하고, 비워두면 실행 시점마다 달라질 수 있습니다."
+      ],
+      "prerequisites": [
+        "허용할 온도, 강수 확률, 해상 상태 범위를 정합니다.",
+        "시나리오 시간대와 지역에 맞는 현실적인 기상 범위를 확인합니다.",
+        "무작위 결과를 플레이어에게 보여줄 로그가 필요한지 결정합니다."
+      ],
+      "safePattern": "좁은 범위와 고정 seed로 먼저 테스트한 뒤, 실제 시나리오에 맞는 범위로 넓히세요.",
+      "aiHint": "AI에게 극단적인 기상 범위를 임의로 만들게 하지 말고, 사용자가 원하는 작전 효과와 허용 범위를 숫자로 확인하게 하세요.",
+      "checks": [
+        "ScenEdit_SetWeather 인자 순서가 현재 CMO 빌드의 temperature/rainfall/undercloud/seastate 의미와 일치하는지 확인 필요",
+        "rain_chance와 sea_state 범위가 플레이 밸런스를 깨지 않는지 CMO 엔진 테스트 권장"
+      ]
+    },
+    "event_dynamic_weather.tpl.lua": {
+      "title": "Dynamic Weather Event guide",
+      "summary": "RegularTime 트리거로 기준 기상 값 주변을 주기적으로 드리프트시키는 이벤트 템플릿입니다.",
+      "beginnerNotes": [
+        "interval이 짧으면 기상이 자주 바뀌어 플레이어가 원인을 파악하기 어려울 수 있습니다.",
+        "base_* 값과 var_* 값은 실제 허용 범위를 기준으로 정해야 합니다.",
+        "스크립트는 일부 값을 클램프하지만, CMO API 인자 의미 자체는 엔진에서 확인해야 합니다."
+      ],
+      "prerequisites": [
+        "RegularTime interval을 시나리오 시간 흐름에 맞게 정합니다.",
+        "기준 온도/강수/구름/해상 상태와 변동 폭을 확인합니다.",
+        "무작위 기상 변화가 특정 임무나 이벤트와 충돌하지 않는지 확인합니다."
+      ],
+      "safePattern": "긴 interval과 작은 var_* 값으로 먼저 테스트하고, 로그를 추가해 실제 변화 폭을 확인한 뒤 조정하세요.",
+      "aiHint": "AI에게 base/var 기상 값을 추측하게 하지 말고, 작전 의도와 허용 범위를 숫자로 받은 뒤 반복 주기를 명시하게 하세요.",
+      "checks": [
+        "RegularTime trigger interval 필드가 현재 CMO 빌드에서 기대한 단위로 동작하는지 확인 필요",
+        "ScenEdit_SetWeather의 rainfall/undercloud/seastate 인자 범위와 클램프가 현재 엔진 의미와 맞는지 테스트 권장"
+      ]
+    },
+    "event_complex.tpl.lua": {
+      "title": "Complex Event guide",
+      "summary": "여러 Trigger, Condition, Action을 한 Event에 연결하고 필요하면 LuaScript Action을 별도 파일로 분리하는 고급 이벤트 템플릿입니다.",
+      "beginnerNotes": [
+        "triggers, conditions, actions 배열의 type/name/opts는 CMO Event Editor에서 실제로 지원하는 값이어야 합니다.",
+        "LuaScript Action을 multi-file로 내보낼 때는 action 이름이 side file 경로에 쓰이므로 이름 충돌을 피해야 합니다.",
+        "isrepeatable=true이면 같은 이벤트가 여러 번 실행될 수 있으므로 점수, spawn, posture 변경 같은 Action은 중복 효과를 먼저 점검해야 합니다."
+      ],
+      "prerequisites": [
+        "Event 이름과 각 Trigger, Condition, Action 이름을 CMO에서 구분 가능한 실제 이름으로 정합니다.",
+        "각 opts 필드가 현재 CMO 빌드의 ScenEdit_SetTrigger, ScenEdit_SetCondition, ScenEdit_SetAction API와 맞는지 확인합니다.",
+        "LuaScript Action 본문이 있다면 paste-ready 초안이어도 CMO Lua Console 또는 Event Editor에서 별도 검증합니다."
+      ],
+      "safePattern": "Trigger, Condition, Action을 하나씩 추가해 CMO에서 동작을 확인한 뒤 복합 이벤트로 묶고, LuaScript는 로그만 출력하는 버전으로 먼저 검증하세요.",
+      "aiHint": "AI에게 Event Editor 옵션 이름을 추측하게 하지 말고, trigger/condition/action type과 opts를 사용자 제공 값이나 CMO UI 확인값으로 제한하게 하세요.",
+      "checks": [
+        "ScenEdit_SetEventTrigger, ScenEdit_SetEventCondition, ScenEdit_SetEventAction 연결 순서가 현재 CMO 빌드에서 의도대로 반영되는지 확인 필요",
+        "multi-file LuaScript Action이 ScenEdit_RunScript 경로로 실행될 때 실제 배포 위치와 파일명이 맞는지 엔진 테스트 권장"
+      ]
+    },
+    "event_split_merge.tpl.lua": {
+      "title": "Split / Merge Event guide",
+      "summary": "RegularTime 이벤트로 특정 유닛을 split하거나 현재 선택된 유닛들을 merge하는 고위험 단위 조작 템플릿입니다.",
+      "beginnerNotes": [
+        "unit_id는 GUID를 우선 사용하고, 이름 fallback은 같은 Side에 동일 이름 유닛이 없을 때만 안전합니다.",
+        "merge 모드는 ScenEdit_MergeUnits()가 현재 선택된 유닛 상태에 의존하므로 자동 이벤트에서 특히 주의해야 합니다.",
+        "split/merge는 편대 구성과 mount 단위에 영향을 줄 수 있어 원본 시나리오 복사본에서 먼저 테스트하는 편이 안전합니다."
+      ],
+      "prerequisites": [
+        "대상 유닛 GUID와 Side 이름을 CMO에서 직접 확인합니다.",
+        "mode가 split인지 merge인지 명확히 정하고, 반복 실행되지 않도록 이벤트 비반복 조건을 확인합니다.",
+        "split 후 생성되는 component unit을 이후 Lua가 다시 참조하는지 점검합니다."
+      ],
+      "safePattern": "GUID 하나를 대상으로 split만 먼저 테스트하고, merge는 수동 선택 상태를 재현할 수 있는 작은 복사 시나리오에서 별도 검증하세요.",
+      "aiHint": "AI에게 유닛 GUID나 Side 이름을 만들게 하지 말고, merge의 선택 유닛 의존성을 반드시 경고하게 하세요.",
+      "checks": [
+        "ScenEdit_SplitUnit 반환 wrapper 구조가 현재 CMO 빌드에서 count loop와 호환되는지 확인 필요",
+        "ScenEdit_MergeUnits가 이벤트 Lua 실행 시점의 selected units를 어떻게 해석하는지 CMO 엔진 테스트 권장"
+      ]
+    },
+    "event_ambient_traffic.tpl.lua": {
+      "title": "Ambient Traffic Event guide",
+      "summary": "정해진 좌표 박스 안의 해상 지점에 Civilian Ship 유닛을 랜덤 DBID로 생성하는 ambient traffic 이벤트 템플릿입니다.",
+      "beginnerNotes": [
+        "dbid_list는 현재 시나리오 DB에서 실제 Civilian 선박 DBID인지 Database Viewer로 확인해야 합니다.",
+        "lat_min/max와 lon_min/max가 0으로 남아 있으면 의도하지 않은 위치에 spawn되거나 spawn이 거의 일어나지 않을 수 있습니다.",
+        "amount가 크면 성능과 시나리오 균형에 영향을 줄 수 있으므로 작은 수로 먼저 테스트해야 합니다."
+      ],
+      "prerequisites": [
+        "좌표 범위를 CMO 지도에서 확인하고, 해상 traffic이 필요한 영역으로 제한합니다.",
+        "Civilian Side가 시나리오에 존재하고, 생성된 유닛을 어떤 side posture로 다룰지 확인합니다.",
+        "spawn에 사용할 DBID 목록과 속도/heading 랜덤 범위를 명시합니다."
+      ],
+      "safePattern": "amount=1 또는 2로 먼저 실행해 World_GetElevation 필터와 Civilian Ship 생성이 의도한 해역에만 적용되는지 확인한 뒤 수량을 늘리세요.",
+      "aiHint": "AI에게 임의 DBID나 좌표 박스를 만들게 하지 말고, 사용자가 제공한 지도 범위와 Database Viewer DBID만 사용하게 하세요.",
+      "checks": [
+        "World_GetElevation({latitude, longitude})의 해상 판정 기준이 현재 CMO 빌드에서 elevation < 0과 맞는지 확인 필요",
+        "ScenEdit_AddUnit의 side/type/dbid 조합이 Civilian 선박 생성에 유효한지 CMO 엔진 테스트 권장"
+      ]
+    },
+    "event_scen_loaded.tpl.lua": {
+      "title": "Scenario Loaded Event guide",
+      "summary": "시나리오 로드 직후 한 번 실행되는 ScenLoaded Trigger와 LuaScript Action을 만드는 초기화 이벤트 템플릿입니다.",
+      "beginnerNotes": [
+        "ScenLoaded 이벤트는 플레이어가 시나리오를 열 때 자동 실행될 수 있으므로 파괴적 Action을 넣으면 되돌리기 어렵습니다.",
+        "lua_script는 시작 시점의 상태를 전제로 하므로 Side, Unit, Mission이 아직 준비되지 않은 경우를 고려해야 합니다.",
+        "초기화가 여러 번 실행되면 안 된다면 KeyValue guard를 넣어 이미 실행된 상태를 기록해야 합니다."
+      ],
+      "prerequisites": [
+        "로드 시 반드시 실행해야 하는 Lua인지, 수동 실행이나 RegularTime 이벤트가 더 안전한지 결정합니다.",
+        "lua_script가 참조하는 Side, Mission, Unit, RP 이름이 시나리오 로드 직후 존재하는지 확인합니다.",
+        "중복 실행 방지용 KeyValue 이름과 reset 방법을 정합니다."
+      ],
+      "safePattern": "처음에는 로그 메시지와 KeyValue guard만 포함한 최소 Lua로 ScenLoaded 실행 타이밍을 확인하고, 상태 변경은 이후 단계에서 추가하세요.",
+      "aiHint": "AI에게 시작 시 자동 실행되는 파괴적 Lua를 바로 만들게 하지 말고, idempotent guard와 사용자 확인값을 포함하게 하세요.",
+      "checks": [
+        "ScenLoaded trigger가 저장/로드/시작 흐름 중 언제 실행되는지 현재 CMO 빌드에서 확인 필요",
+        "lua_script 안의 ScenEdit_SetKeyValue/ScenEdit_GetKeyValue guard가 중복 실행을 실제로 막는지 엔진 테스트 권장"
+      ]
+    },
+    "event_unit_x.tpl.lua": {
+      "title": "UnitX Event guide",
+      "summary": "UnitDestroyed, TargetDamaged, UnitEntersArea 같은 유닛 관련 Trigger에서 ScenEdit_UnitX() 결과를 LuaScript에 전달하는 이벤트 템플릿입니다.",
+      "beginnerNotes": [
+        "ScenEdit_UnitX()가 반환하는 u 객체는 trigger_type에 따라 기대할 수 있는 필드가 달라질 수 있습니다.",
+        "trigger_opts의 TargetFilter, Side, Area, DBID 같은 값은 CMO Event Editor에서 실제 trigger와 맞춰야 합니다.",
+        "템플릿은 nil guard를 포함하지만, user lua_script가 u.guid, u.name 같은 필드를 바로 쓴다면 nil/field 존재 여부를 추가 확인해야 합니다."
+      ],
+      "prerequisites": [
+        "trigger_type과 trigger_opts를 현재 CMO 빌드에서 유효한 조합으로 확정합니다.",
+        "lua_script가 u에서 어떤 필드를 읽는지 목록화하고, 해당 trigger에서 그 필드가 존재하는지 확인합니다.",
+        "반복 이벤트라면 같은 유닛에 대해 Action이 여러 번 실행되어도 안전한지 검토합니다."
+      ],
+      "safePattern": "먼저 u.name, u.guid, u.side 같은 기본 필드를 로그로 출력하는 Action으로 trigger payload를 확인한 뒤 실제 조작 Lua를 붙이세요.",
+      "aiHint": "AI에게 ScenEdit_UnitX() payload 필드를 추측하게 하지 말고, trigger별로 관측한 필드만 사용하게 하세요.",
+      "checks": [
+        "선택한 trigger_type에서 ScenEdit_UnitX()가 nil이 아닌 값을 반환하는지 CMO Event Editor에서 확인 필요",
+        "lua_script가 참조하는 u 필드가 실제 payload에 존재하는지 로그 기반 엔진 테스트 권장"
+      ]
+    },
+    "inst_import.tpl.lua": {
+      "title": "INST Import guide",
+      "summary": "ScenEdit_ImportInst로 지정한 .inst 파일을 특정 Side에 가져오는 간단하지만 파일/DB 호환성에 민감한 템플릿입니다.",
+      "beginnerNotes": [
+        "filename은 신뢰할 수 있는 .inst 파일 경로 또는 CMO가 접근 가능한 파일명이어야 하며, AI가 임의 경로를 만들면 안 됩니다.",
+        "가져올 Side 이름은 현재 시나리오에 실제로 존재해야 합니다.",
+        ".inst 파일이 현재 시나리오 DB와 맞지 않으면 DBID, loadout, mount가 예상과 다르게 들어올 수 있습니다."
+      ],
+      "prerequisites": [
+        ".inst 파일 출처와 저장 위치를 확인합니다.",
+        "import 대상 Side 이름과 현재 DB family/version을 확인합니다.",
+        "가져온 유닛이 생성될 위치, mission 배정, posture 영향을 별도로 검토합니다."
+      ],
+      "safePattern": "작은 테스트 시나리오에서 같은 Side와 DB 버전으로 import를 먼저 실행하고, 성공 로그와 생성 유닛 목록을 확인한 뒤 본 시나리오에 적용하세요.",
+      "aiHint": "AI에게 filename, Side 이름, DB 호환성을 추측하게 하지 말고, 사용자가 제공한 파일명과 CMO 확인값만 사용하게 하세요.",
+      "checks": [
+        "ScenEdit_ImportInst(__side, __filename) 호출 형식이 현재 CMO 빌드에서 유효한지 확인 필요",
+        "import 후 생성된 유닛의 DBID, loadout, side, 위치가 의도와 맞는지 CMO 엔진 테스트 권장"
+      ]
+    },
+    "event_random_start_weather.tpl.lua": {
+      "title": "Random Start Weather Event guide",
+      "summary": "RegularTime 1초 트리거와 KeyValue guard로 시나리오 시작 직후 한 번만 랜덤 초기 기상을 설정하는 이벤트 템플릿입니다.",
+      "beginnerNotes": [
+        "KeyValue `random_weather_done`가 이미 true이면 다시 실행되지 않으므로 테스트 후 reset 방법을 정해야 합니다.",
+        "temp/rain/cloud/sea 범위가 너무 넓으면 시나리오 난이도와 센서/비행 운용이 크게 바뀔 수 있습니다.",
+        "ScenEdit_SpecialMessage 대상이 `playerside`로 고정되어 있어 실제 플레이어 Side 이름과 맞는지 확인해야 합니다."
+      ],
+      "prerequisites": [
+        "허용할 초기 기상 범위를 숫자로 확정합니다.",
+        "플레이어 Side 이름과 메시지 표시 대상이 현재 시나리오와 맞는지 확인합니다.",
+        "KeyValue guard 이름이 다른 이벤트와 충돌하지 않는지 확인합니다."
+      ],
+      "safePattern": "좁은 기상 범위와 테스트용 메시지로 시작해 한 번만 실행되는지 확인한 뒤 실제 범위를 넓히세요.",
+      "aiHint": "AI에게 극단적인 날씨 범위나 플레이어 Side 이름을 추측하게 하지 말고, 사용자 제공 범위와 CMO 확인값만 사용하게 하세요.",
+      "checks": [
+        "RegularTime interval=1과 KeyValue guard 조합이 현재 CMO 빌드에서 한 번만 실행되는지 확인 필요",
+        "ScenEdit_SetWeather 인자 범위와 SpecialMessage Side 대상이 실제 엔진에서 의도대로 동작하는지 테스트 권장"
+      ]
+    },
+    "loadout_scramble.tpl.lua": {
+      "title": "Loadout Scramble guide",
+      "summary": "지정한 base에서 Aircraft를 생성하고 Loadout ID를 적용한 뒤 선택적으로 Mission에 배정하고 Launch하는 템플릿입니다.",
+      "beginnerNotes": [
+        "dbid와 loadout_dbid는 현재 시나리오 DB 기준 Database Viewer에서 확인해야 합니다.",
+        "host는 실제 airbase/facility 이름이어야 하며, 해당 base가 해당 항공기와 loadout을 운용할 수 있어야 합니다.",
+        "Launch() 호출은 준비 상태와 base 조건에 따라 실패할 수 있으므로 생성 성공과 발진 성공을 따로 확인해야 합니다."
+      ],
+      "prerequisites": [
+        "Side, host base, aircraft name, aircraft DBID, Loadout ID를 CMO에서 확인합니다.",
+        "mission에 배정한다면 Mission 이름이 이미 존재하고 해당 Side 소속인지 확인합니다.",
+        "loadout_dbid가 0 fallback으로 남아 있지 않은지 검토합니다."
+      ],
+      "safePattern": "먼저 생성만 테스트하고, 그 다음 Mission 배정, 마지막으로 Launch를 켜서 단계별로 실패 지점을 분리하세요.",
+      "aiHint": "AI에게 DBID, Loadout ID, base 이름, Mission 이름을 만들게 하지 말고 Database Viewer와 CMO UI 확인값을 요구하게 하세요.",
+      "checks": [
+        "ScenEdit_AddUnit의 base/loadoutid 조합이 현재 CMO 빌드에서 의도한 항공기를 생성하는지 확인 필요",
+        "__unit:Launch()가 생성 직후 호출될 때 실제 발진 또는 준비 상태를 어떻게 처리하는지 엔진 테스트 권장"
+      ]
+    },
+    "mission_generic.tpl.lua": {
+      "title": "Generic Mission guide",
+      "summary": "mission kind와 subtype만 받아 ScenEdit_AddMission을 호출하는 fallback mission 생성 템플릿입니다.",
+      "beginnerNotes": [
+        "kind와 mission_subtype이 실제 CMO mission type과 맞지 않으면 생성이 실패하거나 의도와 다른 Mission이 될 수 있습니다.",
+        "generic fallback은 patrol/strike/support 같은 전문 템플릿보다 옵션이 적으므로 세부 설정은 별도 Lua가 필요할 수 있습니다.",
+        "Side와 Mission 이름은 실제 시나리오 기준으로 중복 없이 정해야 합니다."
+      ],
+      "prerequisites": [
+        "Side 이름과 Mission 이름을 확정합니다.",
+        "kind 또는 mission_type, mission_subtype이 현재 CMO API에서 유효한 조합인지 확인합니다.",
+        "생성 후 필요한 zone, unit assignment, doctrine, activation 상태를 별도 단계로 정리합니다."
+      ],
+      "safePattern": "Mission 생성만 먼저 확인한 뒤 patrol zone, assigned units, activation 같은 후속 설정을 별도 검증 단계로 추가하세요.",
+      "aiHint": "AI에게 mission kind/subtype을 추측하게 하지 말고, CMO Mission Editor 또는 문서에서 확인된 값만 쓰게 하세요.",
+      "checks": [
+        "ScenEdit_AddMission(side, name, kind, { type = subtype }) 호출 형태가 현재 CMO 빌드에서 유효한지 확인 필요",
+        "생성된 Mission이 의도한 category/type/status로 표시되는지 Mission Editor에서 검증 권장"
+      ]
+    },
+    "advanced_ops.lua": {
+      "title": "Advanced Operations preset guide",
+      "summary": "IADS, cargo drop, victory condition, teleport, CSAR, logistics, split/merge, dynamic weather, ambient traffic, radio message를 한 번에 시연하는 대형 데모 preset입니다.",
+      "beginnerNotes": [
+        "playerside, RED, Civilian, Downed Pilots 같은 Side 이름과 posture는 예시이며 실제 시나리오에 맞게 바꿔야 합니다.",
+        "RP 좌표, unit DBID, weapon_dbid, IADS range, logistics quantity, traffic area는 데모 값이므로 그대로 본 시나리오에 넣으면 위험합니다.",
+        "여러 이벤트가 동시에 추가되므로 문제 발생 시 어느 이벤트가 원인인지 추적하기 어렵습니다."
+      ],
+      "prerequisites": [
+        "모든 Side 이름, RP 좌표, unit DBID, weapon DBID, base/unit 이름을 현재 시나리오 기준으로 교체합니다.",
+        "각 이벤트 kind가 사용하는 개별 템플릿의 prerequisites를 먼저 검토합니다.",
+        "multi_file=false 상태와 출력 방식이 원하는 배포 방식과 맞는지 확인합니다."
+      ],
+      "safePattern": "10개 이벤트를 한 번에 넣지 말고 IADS, cargo, weather처럼 기능별로 하나씩 켜서 CMO 엔진에서 확인하세요.",
+      "aiHint": "AI에게 이 preset의 데모 Side, RP, DBID, 좌표를 실제값처럼 재사용하게 하지 말고, 모든 식별자를 사용자 시나리오 값으로 재확인하게 하세요.",
+      "checks": [
+        "각 event kind가 현재 builder에서 대응 템플릿으로 올바르게 라우팅되는지 확인 필요",
+        "전체 preset을 적용하기 전 복사 시나리오에서 Side/posture, RP, unit, event 생성 결과를 단계별로 검증 권장"
+      ]
+    },
+    "airbase_scramble.lua": {
+      "title": "Airbase Scramble preset guide",
+      "summary": "UnitDetected trigger가 발생하면 Blue Airbase에서 interceptor를 생성하고 loadout을 붙여 즉시 Launch하는 preset입니다.",
+      "beginnerNotes": [
+        "DetectorSideID, TargetFilter의 TargetSide/TargetType, MCL 값은 CMO Event Editor에서 실제 탐지 조건과 맞아야 합니다.",
+        "interceptor DBID 211, loadout 1404, base `Blue Airbase`는 예시값입니다.",
+        "탐지 이벤트가 반복되면 같은 이름의 QRA-1 생성 시도나 중복 launch가 발생할 수 있습니다."
+      ],
+      "prerequisites": [
+        "Blue/Red Side 이름과 탐지 조건을 현재 시나리오 값으로 교체합니다.",
+        "interceptor aircraft DBID, Loadout ID, base 이름을 Database Viewer와 CMO UI에서 확인합니다.",
+        "중복 scramble 방지를 위한 KeyValue guard 또는 Mission 상태 조건이 필요한지 결정합니다."
+      ],
+      "safePattern": "먼저 UnitDetected trigger만 로그로 검증하고, 그 다음 AddUnit, 마지막으로 Launch를 단계별로 켜세요.",
+      "aiHint": "AI에게 DBID/loadout/base/TargetFilter를 추측하게 하지 말고, trigger 조건과 interceptor 출처를 사용자 확인값으로 제한하게 하세요.",
+      "checks": [
+        "UnitDetected opts 구조와 MCL 값이 현재 CMO 빌드에서 유효한지 확인 필요",
+        "생성 직후 interceptor:Launch() 호출이 실제 base 상태에서 성공하는지 CMO 엔진 테스트 권장"
+      ]
+    },
+    "cap_patrol.lua": {
+      "title": "CAP Patrol preset guide",
+      "summary": "CAP 구역 RP 4개, CAP 항공기 1대, AAW patrol mission을 함께 만드는 방어 patrol preset입니다.",
+      "beginnerNotes": [
+        "CAP-NW/NE/SE/SW 좌표는 예시이며 실제 작전 구역에 맞게 CMO 지도에서 확인해야 합니다.",
+        "CAP-1 항공기 DBID 211, 고도, 속도는 시나리오 DB와 운용 의도에 맞는지 확인해야 합니다.",
+        "patrol_zone_rps는 생성된 RP 이름과 정확히 일치해야 Mission이 올바른 구역을 참조합니다."
+      ],
+      "prerequisites": [
+        "Blue Side 이름, CAP 구역 좌표, 항공기 DBID, mission 이름을 확정합니다.",
+        "AAW patrol_type과 oneThirdRule이 현재 CMO Mission Editor 설정과 맞는지 확인합니다.",
+        "CAP 항공기가 Mission에 배정되는 후속 흐름이 필요한지 확인합니다."
+      ],
+      "safePattern": "RP 생성과 Mission 생성 결과를 먼저 확인하고, 항공기 배정/launch는 별도 단계로 검증하세요.",
+      "aiHint": "AI에게 CAP 좌표나 DBID를 임의 생성하게 하지 말고, CMO 지도와 Database Viewer 확인값을 요구하게 하세요.",
+      "checks": [
+        "ScenEdit_AddMission patrol type과 zone RP 참조가 현재 CMO 빌드에서 의도대로 적용되는지 확인 필요",
+        "oneThirdRule 설정이 Mission Editor에 올바르게 반영되는지 엔진 테스트 권장"
+      ]
+    },
+    "multi_file_pack.lua": {
+      "title": "Multi-file Pack preset guide",
+      "summary": "LuaScript Action 본문을 side file로 분리하는 multi-file 출력 흐름을 시연하는 preset입니다.",
+      "beginnerNotes": [
+        "multi_file=true이면 init Lua와 events/*.lua 파일이 함께 배포되어야 합니다.",
+        "Action 이름은 side file 이름과 연결되므로 충돌하거나 특수문자가 들어가면 경로 문제가 생길 수 있습니다.",
+        "ScenEdit_RunScript 경로가 실제 배포 폴더 구조와 맞아야 외부 script가 실행됩니다."
+      ],
+      "prerequisites": [
+        "출력 폴더 구조와 CMO가 접근할 script 경로를 확인합니다.",
+        "Event, Trigger, Action 이름이 중복되지 않도록 정합니다.",
+        "외부 side file에 들어갈 Lua가 독립 실행되어도 필요한 context를 모두 갖는지 확인합니다."
+      ],
+      "safePattern": "Hello-world 메시지처럼 부작용이 작은 LuaScript로 multi-file 경로를 먼저 검증한 뒤 실제 Action을 분리하세요.",
+      "aiHint": "AI에게 배포 경로나 side file 이름을 추측하게 하지 말고, 사용자가 선택한 output 구조와 CMO script 경로를 명시하게 하세요.",
+      "checks": [
+        "builder가 action Lua를 events/action_hello_world.lua로 분리하고 init에서 올바른 ScenEdit_RunScript 경로를 쓰는지 확인 필요",
+        "CMO에서 외부 side file을 실제로 찾고 실행하는지 엔진 테스트 권장"
+      ]
+    },
+    "quickbattle.lua": {
+      "title": "Quick Battle preset guide",
+      "summary": "DB3K_517 예시 DBID와 랜덤 좌표 박스로 Blue/Red 전력을 생성하고 기본 CAP mission을 만드는 동적 quick battle preset입니다.",
+      "beginnerNotes": [
+        "DBID 목록은 DB3K_517 기준 예시이므로 다른 DB family/version에서는 맞지 않을 수 있습니다.",
+        "math.random 기반이라 매 실행마다 유닛 수, 위치, 고도, 속도가 달라져 재현성이 낮습니다.",
+        "좌표 박스와 terrain 필터가 실제 작전 해역/육상 구역과 맞는지 확인해야 합니다."
+      ],
+      "prerequisites": [
+        "사용할 DB family/version과 Blue/Red Side 이름을 확정합니다.",
+        "Blue aircraft, Red ship/facility DBID 목록을 Database Viewer에서 검증합니다.",
+        "랜덤 생성 좌표 범위와 patrol mission 설정이 시나리오 목표와 맞는지 확인합니다."
+      ],
+      "safePattern": "random seed와 좌표 범위를 고정해 작은 전력으로 먼저 생성 결과를 확인한 뒤 랜덤 폭과 unit 수를 늘리세요.",
+      "aiHint": "AI에게 DB3K_517 예시 DBID를 보편값처럼 쓰게 하지 말고, 현재 시나리오 DB와 좌표 범위를 사용자에게 확인하게 하세요.",
+      "checks": [
+        "unit_spawn_random 흐름이 terrain=sea/land와 좌표 박스를 현재 CMO 지도에서 의도대로 처리하는지 확인 필요",
+        "랜덤 생성 후 Mission, Side posture, unit 위치가 균형을 깨지 않는지 반복 엔진 테스트 권장"
+      ]
+    },
+    "strike_alpha.lua": {
+      "title": "Strike Alpha preset guide",
+      "summary": "Strike mission, KV flag, UnitX, DBID score, escalation, contact EMCON, mission toggle, scramble, weather, INST import를 묶은 종합 strike demo preset입니다.",
+      "beginnerNotes": [
+        "Blue/Red Side 이름, F-35 DBID, SAM DBID, Loadout ID, Bunker_Complex.inst는 모두 예시값입니다.",
+        "Strike-Alpha, Patrol-Beta, RP-1..RP-4, SAM-Site-1 같은 이름은 실제 시나리오에 존재하거나 preset에서 생성되어야 합니다.",
+        "여러 이벤트가 posture, doctrine, EMCON, mission state, scoring, import를 동시에 바꾸므로 한 번에 적용하면 원인 추적이 어렵습니다."
+      ],
+      "prerequisites": [
+        "Side, aircraft/facility DBID, Loadout ID, RP 이름, Mission 이름, `.inst` 파일 출처를 확인합니다.",
+        "각 이벤트 kind의 개별 annotation과 CMO Event Editor 조건을 검토합니다.",
+        "weather와 inst_import가 현재 시나리오 DB/맵/작전 의도와 맞는지 확인합니다."
+      ],
+      "safePattern": "Strike mission과 target 생성만 먼저 검증하고, KV/UnitX/score/escalation/EMCON/scramble/import는 한 기능씩 켜서 확인하세요.",
+      "aiHint": "AI에게 이 demo의 DBID, RP, Mission, posture, doctrine, `.inst` 파일명을 실제값으로 간주하게 하지 말고 사용자 시나리오 기준으로 재확인하게 하세요.",
+      "checks": [
+        "Strike mission target, DBID scoring, escalation doctrine, EMCON, scramble loadout, INST import가 각각 현재 CMO 빌드에서 유효한지 확인 필요",
+        "전체 preset 적용 전 복사 시나리오에서 이벤트별 로그와 생성/변경 결과를 단계적으로 검증 권장"
+      ]
+    }
+  }
+}
