@@ -197,6 +197,20 @@ export function scanBackends() {
     notes: cursorCli ? '' : 'cursor-agent 미설치 — `npm i -g @cursor/cli` 후 사용 가능. Composer는 BYOK HTTP 차단(구독 CLI 전용)',
   });
 
+  const grokCli = resolveCliExecutable('grok');
+  backends.push({
+    id: 'grok:default',
+    class: 'cli',
+    providerType: 'grok-cli',
+    label: 'Grok — Build CLI (subscription)',
+    account: '',
+    cliHome: '',
+    cliAvailable: Boolean(grokCli),
+    models: ['auto'],
+    defaultModel: 'auto',
+    notes: 'auto = CLI 기본 모델 (-m 오버라이드는 --model로). 프롬프트가 argv로 전달되어 28K자 제한',
+  });
+
   for (const preset of BYOK_PRESETS) {
     const keyEnv = preset.keyEnvCandidates.find((name) => (process.env[name] || '').trim());
     backends.push({

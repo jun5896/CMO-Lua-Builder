@@ -10,10 +10,15 @@
  *   - cursor-cli : Cursor Agent (`cursor-agent -p`), Composer via subscription
  *                  (Cursor blocks BYOK HTTP access to Composer; the CLI is the
  *                  only supported headless path)
+ *   - grok-cli   : Grok Build CLI (`grok -p/--single`), subscription auth in
+ *                  ~/.grok. The prompt must travel as an argv value (the CLI
+ *                  has no stdin prompt mode), so grok-cli prompts are length-
+ *                  capped below the Windows command-line limit.
  *
  * Safety posture:
- *   - Prompts are passed via stdin (never argv) — no shell injection surface
- *     and no Windows command-line length limit.
+ *   - Prompts are passed via stdin where the CLI supports it (no shell
+ *     injection surface, no Windows command-line length limit); grok-cli is
+ *     the argv exception and is length-guarded instead.
  *   - CLIs run in the OS temp directory so they cannot pick up repo context
  *     or edit project files, and codex runs with --sandbox read-only.
  *   - cfg.cliHome must be an existing directory; model ids are validated.
@@ -24,10 +29,14 @@ import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
-export const CLI_PROVIDER_TYPES = new Set(['claude-cli', 'codex-cli', 'cursor-cli']);
+export const CLI_PROVIDER_TYPES = new Set(['claude-cli', 'codex-cli', 'cursor-cli', 'grok-cli']);
 
 const MODEL_RE = /^[A-Za-z0-9._:\/-]{1,64}$/;
 const DEFAULT_CLI_TIMEOUT_MS = 300_000;
+// Windows CreateProcess command lines cap at ~32K chars; leave headroom.
+const GROK_ARGV_PROMPT_LIMIT = 28_000;
+// Sentinel model meaning "let the CLI use its configured default model".
+const AUTO_MODEL = new Set(['', 'auto', 'default']);
 
 export function isCliProviderType(providerType) {
   return CLI_PROVIDER_TYPES.has(providerType);
@@ -59,10 +68,12 @@ export function flattenMessagesToPrompt(messages = []) {
  * verify argv/env shape offline.
  */
 export function buildCliInvocation(cfg) {
-  const model = String(cfg.model || '').trim();
-  if (model && !MODEL_RE.test(model)) {
+  const rawModel = String(cfg.model || '').trim();
+  if (rawModel && !MODEL_RE.test(rawModel)) {
     throw new Error('Invalid CLI model id');
   }
+  // 'auto'/'default' → omit the model flag and use the CLI's configured default.
+  const model = AUTO_MODEL.has(rawModel.toLowerCase()) ? '' : rawModel;
 
   const envOverrides = {};
   const home = String(cfg.cliHome || '').trim();
@@ -75,6 +86,20 @@ export function buildCliInvocation(cfg) {
         args: ['-p', '--output-format', 'text', '--max-turns', '1', ...(model ? ['--model', model] : [])],
         envOverrides,
         promptViaStdin: true,
+        readsLastMessageFile: false,
+      };
+    }
+    case 'grok-cli': {
+      const prompt = String(cfg.prompt || '');
+      if (!prompt) throw new Error('grok-cli requires the prompt at invocation-build time');
+      if (prompt.length > GROK_ARGV_PROMPT_LIMIT) {
+        throw new Error(`grok-cli prompt exceeds argv limit (${prompt.length} > ${GROK_ARGV_PROMPT_LIMIT} chars) — shrink the context or use another backend`);
+      }
+      return {
+        command: 'grok',
+        args: ['-p', prompt, '--output-format', 'plain', ...(model ? ['-m', model] : [])],
+        envOverrides,
+        promptViaStdin: false,
         readsLastMessageFile: false,
       };
     }
@@ -155,9 +180,11 @@ export async function callCliProvider(cfg) {
     lastMessageFile = path.join(workDir, 'last-message.txt');
   }
 
+  const prompt = flattenMessagesToPrompt(cfg.messages);
+
   let plan;
   try {
-    plan = buildCliInvocation({ ...cfg, lastMessageFile });
+    plan = buildCliInvocation({ ...cfg, lastMessageFile, prompt });
   } catch (error) {
     if (workDir) rmSync(workDir, { recursive: true, force: true });
     return cliFailure(cfg, error.message);
@@ -170,7 +197,6 @@ export async function callCliProvider(cfg) {
   }
 
   const useShell = /\.(cmd|bat)$/i.test(executable);
-  const prompt = flattenMessagesToPrompt(cfg.messages);
 
   const result = await new Promise((resolve) => {
     const child = spawn(executable, plan.args, {
@@ -207,7 +233,11 @@ export async function callCliProvider(cfg) {
     });
 
     child.stdin.on('error', () => {});
-    child.stdin.end(prompt, 'utf8');
+    if (plan.promptViaStdin) {
+      child.stdin.end(prompt, 'utf8');
+    } else {
+      child.stdin.end();
+    }
   });
 
   let text = String(result.stdout || '').trim();

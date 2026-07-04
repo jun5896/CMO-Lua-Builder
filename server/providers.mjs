@@ -335,6 +335,7 @@ export async function listProviderModels(cfg) {
     case 'claude-cli':
     case 'codex-cli':
     case 'cursor-cli':
+    case 'grok-cli':
       // No discovery endpoint; the backends scanner supplies curated model
       // lists for these types.
       return { status: 200, body: { ok: true, providerType: cfg.providerType, baseUrl: cfg.baseUrl || '', models: [] } };
@@ -352,7 +353,7 @@ export async function listProviderModels(cfg) {
 export async function testProvider(cfg) {
   if (isCliProviderType(cfg.providerType)) {
     const { resolveCliExecutable } = await import('./cli-providers.mjs');
-    const commandByType = { 'claude-cli': 'claude', 'codex-cli': 'codex', 'cursor-cli': 'cursor-agent' };
+    const commandByType = { 'claude-cli': 'claude', 'codex-cli': 'codex', 'cursor-cli': 'cursor-agent', 'grok-cli': 'grok' };
     const executable = resolveCliExecutable(commandByType[cfg.providerType]);
     return {
       ok: Boolean(executable),

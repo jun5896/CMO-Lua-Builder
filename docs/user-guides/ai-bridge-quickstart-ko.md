@@ -8,7 +8,7 @@ CMO 시나리오의 AI를 대화로 고치는 최단 경로. GUI 불필요.
 
 ## 사용 (매번)
 
-1. `start-cmo-ai.cmd` 더블클릭 (또는 리포 폴더에서 `claude` 실행) → Claude Code가 이 리포 컨텍스트로 열림
+1. 바탕화면 **"CMO AI Bridge"** 바로가기 더블클릭 (= `start-cmo-ai.cmd`, CMO 아이콘) → Claude Code가 이 리포 컨텍스트로 열림
 2. CMO를 켜고 시나리오 로드
 3. Claude에게 한국어로 원하는 것을 말한다. 예:
    - "이 시나리오 적 CAP이 미사일을 최대사거리에서 낭비하지 않게 WRA 조여줘"

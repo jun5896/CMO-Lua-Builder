@@ -6,7 +6,7 @@ import { buildAnthropicRequestBody, normalizeAnthropicResponse, PROVIDER_TYPES }
 import { BYOK_PRESETS, buildSelection, scanBackends } from './scan-ai-backends.mjs';
 
 // --- provider type surface -------------------------------------------------
-for (const type of ['openai-compatible', 'anthropic-compatible', 'ollama', 'lm-studio', 'claude-cli', 'codex-cli', 'cursor-cli']) {
+for (const type of ['openai-compatible', 'anthropic-compatible', 'ollama', 'lm-studio', 'claude-cli', 'codex-cli', 'cursor-cli', 'grok-cli']) {
   assert.ok(PROVIDER_TYPES.has(type), `PROVIDER_TYPES missing ${type}`);
 }
 
@@ -38,6 +38,17 @@ assert.equal(codexPlan.envOverrides.CODEX_HOME, 'C:\\Users\\x\\.codex-pro2');
 const cursorPlan = buildCliInvocation({ providerType: 'cursor-cli', model: 'composer' });
 assert.equal(cursorPlan.command, 'cursor-agent');
 assert.ok(cursorPlan.args.includes('composer'));
+assert.ok(cursorPlan.args.includes('--trust'));
+
+const grokPlan = buildCliInvocation({ providerType: 'grok-cli', model: 'auto', prompt: 'hello grok' });
+assert.equal(grokPlan.command, 'grok');
+assert.deepEqual(grokPlan.args.slice(0, 2), ['-p', 'hello grok']);
+assert.equal(grokPlan.promptViaStdin, false);
+assert.ok(!grokPlan.args.includes('-m'), "model 'auto' omits the -m flag");
+const grokModelPlan = buildCliInvocation({ providerType: 'grok-cli', model: 'grok-4-1', prompt: 'x' });
+assert.ok(grokModelPlan.args.includes('-m') && grokModelPlan.args.includes('grok-4-1'));
+assert.throws(() => buildCliInvocation({ providerType: 'grok-cli', prompt: 'x'.repeat(28_001) }), /argv limit/);
+assert.throws(() => buildCliInvocation({ providerType: 'grok-cli', prompt: '' }), /requires the prompt/);
 
 assert.throws(() => buildCliInvocation({ providerType: 'claude-cli', model: 'bad model!' }), /Invalid CLI model/);
 
