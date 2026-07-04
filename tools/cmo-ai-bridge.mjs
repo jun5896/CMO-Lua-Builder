@@ -208,7 +208,18 @@ export function parseTelemetryInst(jsonText, fileName = '') {
     return { ok: false, fileName, error: 'invalid JSON inst payload' };
   }
 
-  const members = Array.isArray(parsed?.MemberRecords) ? parsed.MemberRecords : [];
+  const rawMembers = Array.isArray(parsed?.MemberRecords) ? parsed.MemberRecords : [];
+  // The game can emit the same unit twice (group wrapper + auto-included
+  // member); dedupe on GUID, in-game verified 2026-07-04.
+  const seenGuids = new Set();
+  const members = rawMembers.filter((member) => {
+    const guid = member?.Member_GUID || '';
+    if (!guid) return true;
+    if (seenGuids.has(guid)) return false;
+    seenGuids.add(guid);
+    return true;
+  });
+
   return {
     ok: true,
     fileName,
@@ -216,6 +227,7 @@ export function parseTelemetryInst(jsonText, fileName = '') {
     comment: parsed?.Comment || '',
     dbId: parsed?.DB_ID ?? null,
     unitCount: members.length,
+    duplicatesDropped: rawMembers.length - members.length,
     units: members.map((member) => ({
       name: member?.MemberName || '',
       type: String(member?.MemberType || '').replace(/^Command_Core\./, ''),

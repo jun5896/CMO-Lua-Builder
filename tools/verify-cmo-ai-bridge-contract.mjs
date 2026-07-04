@@ -83,10 +83,15 @@ async function run() {
         Member_DBID: 35, Member_GUID: 'g-1', MemberType: 'Command_Core.Facility',
         MemberName: 'Runway', ParentGroupName: 'Base', Longitude: 65.8, Latitude: 31.5,
         Altitude: 0, LoadoutID: 0,
+      }, {
+        Member_DBID: 35, Member_GUID: 'g-1', MemberType: 'Command_Core.Facility',
+        MemberName: 'Runway', ParentGroupName: 'Base', Longitude: 65.8, Latitude: 31.5,
+        Altitude: 0, LoadoutID: 0,
       }],
     }), 'AiAssist_telemetry_Blue.inst');
     assert.equal(inst.ok, true);
-    assert.equal(inst.unitCount, 1);
+    assert.equal(inst.unitCount, 1, 'duplicate GUIDs are dropped');
+    assert.equal(inst.duplicatesDropped, 1);
     assert.equal(inst.comment, 't=1234');
     assert.equal(inst.units[0].type, 'Facility');
     assert.equal(inst.units[0].lat, 31.5);
