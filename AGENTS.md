@@ -1,6 +1,24 @@
 # CMO Lua UI — Agent Guide
 
-Command: Modern Operations (CMO) Lua/Event 작성 보조 UI. Vite + React 프론트엔드, Node.js AI 어댑터 서버, PowerShell/Node 툴체인으로 구성.
+Command: Modern Operations (CMO) Lua/Event 작성 보조 도구. Vite + React 프론트엔드, Node.js AI 어댑터 서버, PowerShell/Node 툴체인, headless AI 브리지 CLI로 구성.
+
+## AI Bridge — 대화 드라이버의 표준 작업 루프
+
+이 리포에서 대화 세션(드라이버)으로 실행된 에이전트는 사용자의 CMO 시나리오 AI를 Lua로 개선하는 것이 주 임무다. GUI를 띄우지 말고 브리지 CLI를 쓴다:
+
+```powershell
+npm run bridge -- status                                      # CMO 경로/AiAssist/최신 로그 확인
+npm run bridge -- apply --file <draft.lua> --slug <name> --write   # 1회성 초안 저장 → 로더 스니펫 출력
+npm run bridge -- inbox --file <draft.lua> --write            # 인게임 폴러가 자동 실행하는 inbox 발행
+npm run bridge -- install-poller --write                      # 폴러 (un)installer 생성 (시나리오당 1회)
+npm run bridge -- logs --kind exception --limit 10            # 게임 로그 read-only 회수
+npm run backends                                              # 위임 가능한 AI 백엔드 목록
+npm run ask -- --backend <id> --prompt "..."                  # 다른 모델에 초안/검수 위임
+```
+
+표준 루프: 사용자 요구 → Lua 초안 작성 → `apply`(수동 1줄) 또는 `inbox`(폴러 자동 실행) → `logs`로 에러 회수 → 수정 반복. 결과 KeyValue는 `aiassist_inbox_result`.
+
+안전 불변식 (변경 금지): AI Lua는 unsafe 게이트(os/io/require/dofile/loadfile/package/debug/ScenEdit_RunScript 차단) 통과 필수, 게임 쓰기는 `Lua\AiAssist\` 한정, `.scen` 원본 무수정, CMO 샌드박스에 dofile 없음(Lua-root RunScript만 동작). 시나리오 컨텍스트는 sidecar 캐시(`D:\works\cmo-scenario-sidecars`)에서 조회.
 
 ## 실행 명령
 
