@@ -5,6 +5,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 
 import {
+  FULL_DUMP_FILE_PREFIX,
   INBOX_FILE_NAME,
   INBOX_RUNSCRIPT_PATH,
   TELEMETRY_FILE_PREFIX,
@@ -12,7 +13,10 @@ import {
   buildInboxStamp,
   buildNoopInboxLua,
   buildPollerInstallerLua,
+  buildQueryLua,
   buildTelemetryInstallerLua,
+  diffTelemetrySnapshots,
+  parseTelemetryComment,
   parseTelemetryInst,
   publishInbox,
   writeTrustedAiAssistFile,
@@ -58,13 +62,17 @@ async function run() {
     // No-op inbox is safe filler.
     assert.match(buildNoopInboxLua(), /no payload published yet/);
 
-    // Telemetry installer exports per-side unit dumps with a self-throttle.
+    // Telemetry installer v2: movable filter, group exclusion, scenario meta.
     const telemetry = buildTelemetryInstallerLua({ periodSeconds: 30 });
     assert.match(telemetry, /ScenEdit_ExportInst/);
     assert.match(telemetry, /aiassist_telemetry_last/);
     assert.match(telemetry, /now - last >= 30/);
     assert.match(telemetry, /VP_GetSides\(\)/);
+    assert.match(telemetry, /t == 'Aircraft' or t == 'Ship' or t == 'Submarine'/, 'movable filter present');
+    assert.match(telemetry, /t ~= 'Group'/, 'group wrappers excluded from full dumps');
+    assert.match(telemetry, /VP_GetScenario/, 'scenario title carried in comment');
     assert.ok(telemetry.includes(TELEMETRY_FILE_PREFIX));
+    assert.ok(telemetry.includes(FULL_DUMP_FILE_PREFIX));
     assert.doesNotMatch(telemetry, /ScenEdit_RunScript/, 'telemetry installer must pass the inbox gate');
     assert.throws(() => buildTelemetryInstallerLua({ periodSeconds: 1 }), /periodSeconds/);
     const telemetryOff = buildTelemetryInstallerLua({ uninstall: true });
@@ -73,6 +81,41 @@ async function run() {
 
     // Telemetry installer survives the inbox safety gate end-to-end.
     assert.match(buildInboxLua(telemetry, buildInboxStamp(telemetry, now)), /ScenEdit_ExportInst/);
+
+    // Comment meta parsing (v1 't=' style, v2 with scen, query results).
+    assert.equal(parseTelemetryComment('t=1234').gameTime, 1234);
+    const v2meta = parseTelemetryComment('t=99.5;scen=Bonus #1 - Reds');
+    assert.equal(v2meta.gameTime, 99.5);
+    assert.equal(v2meta.scenTitle, 'Bonus #1 - Reds');
+    const qmeta = parseTelemetryComment('q=20260705_010101_abcd1234;r=score=150');
+    assert.equal(qmeta.queryStamp, '20260705_010101_abcd1234');
+    assert.equal(qmeta.queryResult, 'score=150');
+
+    // Snapshot diff: lost / gained / moved.
+    const prevSnap = { units: [
+      { guid: 'a', name: 'MiG-31 #5', type: 'Aircraft', lat: 44.0, lon: 133.0 },
+      { guid: 'b', name: 'USS Texas', type: 'Ship', lat: 36.4, lon: 131.4 },
+    ] };
+    const currSnap = { units: [
+      { guid: 'b', name: 'USS Texas', type: 'Ship', lat: 36.9, lon: 131.4 },
+      { guid: 'c', name: 'F-35 #1', type: 'Aircraft', lat: 36.5, lon: 131.5 },
+    ] };
+    const diff = diffTelemetrySnapshots(prevSnap, currSnap);
+    assert.equal(diff.lost.length, 1);
+    assert.equal(diff.lost[0].guid, 'a');
+    assert.equal(diff.gained.length, 1);
+    assert.equal(diff.gained[0].guid, 'c');
+    assert.equal(diff.movedCount, 1);
+    assert.ok(diff.moved[0].movedNm > 25 && diff.moved[0].movedNm < 35, '0.5deg lat ≈ 30nm');
+
+    // Query Lua: serializer + KeyValue mirror + anchored export, gate-safe.
+    const queryLua = buildQueryLua("return ScenEdit_GetScore('United States')", 'stamp_1');
+    assert.match(queryLua, /aiassist_query_result/);
+    assert.match(queryLua, /ScenEdit_ExportInst/);
+    assert.match(queryLua, /q=stamp_1/);
+    assert.match(buildInboxLua(queryLua, buildInboxStamp(queryLua, now)), /aiassist_query_result/);
+    assert.throws(() => buildQueryLua('', 'stamp'), /required/);
+    assert.throws(() => buildQueryLua('return 1', 'bad stamp'), /stamp/);
 
     // Inst parser summarizes the JSON payload the game writes.
     const inst = parseTelemetryInst(JSON.stringify({

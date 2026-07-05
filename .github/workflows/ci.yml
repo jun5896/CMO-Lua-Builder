@@ -1,0 +1,36 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run build
+      # Game-independent contract smokes only — sidecar audits and anything
+      # touching a CMO install stay local.
+      - run: npm run smoke:ai-workflow-state
+      - run: npm run smoke:ai-follow-up-needs
+      - run: npm run smoke:ai-confirmed-context
+      - run: npm run smoke:ai-adapter-client-sidecar
+      - run: npm run smoke:cmo-log-feedback
+      - run: npm run smoke:cmo-log-feedback-endpoint
+      - run: npm run smoke:ai-adapter-client-log-feedback
+      - run: npm run smoke:cmo-state-snapshot
+      - run: npm run smoke:cmo-state-snapshot-endpoint
+      - run: npm run smoke:ai-adapter-client-state-snapshot
+      - run: npm run smoke:cmo-wiki-code-assistant
+      - run: npm run smoke:ai-client-parser
+      - run: npm run smoke:cmo-ai-bridge
+      - run: npm run smoke:ai-backends
+      - run: npm run smoke:ai-adapter

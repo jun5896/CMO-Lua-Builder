@@ -164,8 +164,8 @@ const LUA_HIGHLIGHT_LINE_LIMIT = 4_000;
 const LUA_ANALYSIS_CHAR_LIMIT = 320_000;
 const TEMP_SESSION_INLINE_CHAR_LIMIT = 240_000;
 const KNOWN_SCENARIO_PATHS = {
-  'iran-strike-2020-2030': 'C:\\Program Files (x86)\\Steam\\steamapps\\workshop\\content\\1076160\\2855653232\\Iran Strike, 2020-2030.scen',
-  'achilles-shield-2035': 'C:\\Program Files (x86)\\Steam\\steamapps\\workshop\\content\\1076160\\3701395554\\Achilles Shield 2035.scen',
+  'iran-strike-2020-2030': 'D:\\SteamLibrary\\steamapps\\workshop\\content\\1076160\\2855653232\\Iran Strike, 2020-2030.scen',
+  'achilles-shield-2035': 'D:\\SteamLibrary\\steamapps\\workshop\\content\\1076160\\3701395554\\Achilles Shield 2035.scen',
 };
 
 function hasLocalTempSession(storageKey = '') {

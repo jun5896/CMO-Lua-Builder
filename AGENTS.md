@@ -13,14 +13,18 @@ npm run bridge -- inbox --file <draft.lua> --write            # 인게임 폴러
 npm run bridge -- install-poller --write                      # 폴러 (un)installer 생성 (시나리오당 1회)
 npm run bridge -- logs --kind exception --limit 10            # 게임 로그 read-only 회수
 npm run bridge -- telemetry-install --via-inbox --write       # 준실시간 유닛 텔레메트리 설치 (시나리오당 1회)
-npm run bridge -- telemetry                                   # ImportExport의 유닛 상태 덤프 판독
+npm run bridge -- telemetry [--diff]                          # 유닛 상태 판독; --diff = 직전 대비 소실/신규/이동
+npm run bridge -- query --lua "<return 포함 Lua>"             # 라이브 질의 왕복 자동화 (시계 필요)
+npm run bridge -- cleanup [--write]                           # 오래된 1회성 AiAssist 파일 정리
 npm run backends                                              # 위임 가능한 AI 백엔드 목록
 npm run ask -- --backend <id> --prompt "..."                  # 다른 모델에 초안/검수 위임
 ```
 
 표준 루프: 사용자 요구 → Lua 초안 작성 → `apply`(수동 1줄) 또는 `inbox`(폴러 자동 실행) → `logs`로 에러 회수 → 수정 반복. 결과 KeyValue는 `aiassist_inbox_result`.
 
-라이브 상태 파악: ① 텔레메트리 설치 후 `telemetry`로 진영별 유닛 목록·좌표를 주기 판독(기본 15게임초, 유닛 소실=피해 추정 diff 가능). ② 임의 질의(점수·미션 등)는 질의 Lua가 결과 문자열을 `ScenEdit_ExportInst(... {filename='AiAssist_query.inst', comment=<결과>})`의 comment에 실어 보내면 `telemetry`가 회수한다(앵커 유닛 1개 필요). ③ 콘솔에서 실행된 질의 출력은 LuaHistory로도 회수 가능.
+라이브 상태 파악: ① 텔레메트리 설치 후 `telemetry`로 이동유닛 좌표를 주기 판독하고 `--diff`로 소실/신규/이동을 요약한다(전체 목록은 편성 변화 시 `AiAssist_full_*`로 갱신). ② 임의 질의(점수·미션 등)는 `query --lua`가 [inbox 발행→폴러 실행→comment 채널 회수]를 자동으로 처리한다(게임 시계 필요). ③ 콘솔에서 실행된 출력은 LuaHistory(`logs`)로도 회수 가능.
+
+**세션 시작 규약**: 대화 드라이버는 먼저 `bridge status`로 상황(시나리오·텔레메트리 신선도·예외)을 브리핑한 뒤 지시를 기다린다.
 
 안전 불변식 (변경 금지): AI Lua는 unsafe 게이트(os/io/require/dofile/loadfile/package/debug/ScenEdit_RunScript 차단) 통과 필수, 게임 쓰기는 `Lua\AiAssist\` 한정, `.scen` 원본 무수정, CMO 샌드박스에 dofile 없음(Lua-root RunScript만 동작). 시나리오 컨텍스트는 sidecar 캐시(`D:\works\cmo-scenario-sidecars`)에서 조회.
 

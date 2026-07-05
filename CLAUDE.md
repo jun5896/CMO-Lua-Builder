@@ -6,6 +6,10 @@ Claude Code role: 2026-07-04부터 이 리포의 단독 유지보수 에이전�
 
 GUI를 띄우지 말고 `tools/cmo-ai-bridge.mjs`를 사용한다. CMO 설치 경로는 자동 감지된다 (`tools/cmo-install-locator.mjs`, env `CMO_ROOT` 등으로 오버라이드).
 
+**세션 시작 규약**: 대화 드라이버로 시작되면 먼저 `npm run bridge -- status`를 실행해
+현재 상황(인식된 시나리오, 텔레메트리 신선도/시계 상태, 폴러·inbox 상태, 최근 예외)을
+한 문단으로 브리핑한 뒤 사용자 지시를 기다린다.
+
 ```powershell
 npm run bridge -- status                                      # 경로/AiAssist/최신 로그 확인
 npm run bridge -- apply --file <draft.lua> --slug <name> --write   # 1회성 초안 → 로더 스니펫 출력
@@ -13,8 +17,13 @@ npm run bridge -- inbox --file <draft.lua> --write            # 폴러가 자동
 npm run bridge -- install-poller --write                      # 인게임 폴러 (un)installer 생성
 npm run bridge -- logs --kind exception --limit 10            # 실행 결과/에러 회수 (read-only)
 npm run bridge -- telemetry-install --via-inbox --write       # 준실시간 유닛 텔레메트리 (시나리오당 1회)
-npm run bridge -- telemetry                                   # 유닛 상태 덤프 판독 (ageSeconds로 신선도 확인)
+npm run bridge -- telemetry [--diff]                          # 유닛 상태 판독; --diff = 소실/신규/이동 요약
+npm run bridge -- query --lua "return ScenEdit_GetScore('X')" # 라이브 질의 왕복 (게임 시계 필요, 기본 90초 대기)
+npm run bridge -- cleanup [--write]                           # 오래된 1회성 AiAssist 파일 정리
 ```
+
+텔레메트리 v2: 이동유닛(항공기/함선/잠수함)은 매 주기, 전체 목록(시설/지상 포함)은
+편성 변화 시에만 `AiAssist_full_<side>.inst`로 export. comment에 시나리오 제목+게임시각 탑재.
 
 ## AI 백엔드 선택 / 교차검수 위임
 
