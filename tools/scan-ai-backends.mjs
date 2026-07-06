@@ -38,12 +38,13 @@ const CODEX_FALLBACK_MODEL = 'gpt-5.5-codex';
 export const BYOK_PRESETS = [
   {
     id: 'byok:kimi',
-    label: 'Kimi (Moonshot) — coding plan / Anthropic-compatible',
+    label: 'Kimi for Coding — Anthropic-compatible (검증: 2026-07-05)',
     providerType: 'anthropic-compatible',
-    baseUrl: 'https://api.moonshot.ai/anthropic',
-    models: ['kimi-for-coding', 'kimi-latest'],
+    // Kimi for Coding 구독 키 전용 엔드포인트 (open-platform 키는 byok:kimi-openai 사용).
+    baseUrl: 'https://api.kimi.com/coding',
+    models: ['kimi-for-coding'],
     keyEnvCandidates: ['MOONSHOT_API_KEY', 'KIMI_API_KEY'],
-    notes: '표준(비 코딩플랜) 키는 openai-compatible + https://api.moonshot.ai/v1 로도 사용 가능',
+    notes: 'K2.7은 thinking 블록 포함 응답 — 파서가 text 블록만 추출함',
   },
   {
     id: 'byok:kimi-openai',
