@@ -14,6 +14,7 @@ import {
   buildNoopInboxLua,
   buildPollerInstallerLua,
   buildQueryLua,
+  buildScanDigest,
   buildTelemetryInstallerLua,
   diffTelemetrySnapshots,
   parseTelemetryComment,
@@ -107,6 +108,24 @@ async function run() {
     assert.equal(diff.gained[0].guid, 'c');
     assert.equal(diff.movedCount, 1);
     assert.ok(diff.moved[0].movedNm > 25 && diff.moved[0].movedNm < 35, '0.5deg lat ≈ 30nm');
+
+    // Scan digest condenses a sidecar summary for on-demand scenario reads.
+    const digest = buildScanDigest({
+      scenario: { title: 'Reds', setting: 'Sea of Japan', currentSide: 'USSR' },
+      sides: [{ name: 'United States' }, { name: 'PRC' }],
+      unitCounts: { Ship: 16, total: 1259 },
+      missions: [{ name: 'EW and AD', kind: 'Strike' }],
+      events: [{ name: 'Random 1' }],
+      specialActions: [],
+      warnings: ['sample truncated'],
+    });
+    assert.equal(digest.title, 'Reds');
+    assert.deepEqual(digest.sides, ['United States', 'PRC']);
+    assert.equal(digest.missionCount, 1);
+    assert.equal(digest.missions[0].kind, 'Strike');
+    assert.equal(digest.eventCount, 1);
+    assert.equal(digest.warnings.length, 1);
+    assert.equal(buildScanDigest({}).missionCount, 0, 'tolerates empty summaries');
 
     // Query Lua: serializer + KeyValue mirror + anchored export, gate-safe.
     const queryLua = buildQueryLua("return ScenEdit_GetScore('United States')", 'stamp_1');

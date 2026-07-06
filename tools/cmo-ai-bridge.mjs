@@ -19,9 +19,11 @@
  */
 
 import { createHash } from 'node:crypto';
+import { spawnSync } from 'node:child_process';
 import { mkdir, open, readFile, readdir, rename, rm, stat, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import process from 'node:process';
+import { fileURLToPath } from 'node:url';
 
 import {
   DEFAULT_SCRIPT_FOLDER,
@@ -30,7 +32,9 @@ import {
   validateLuaSidecarContent,
 } from '../server/cmo-lua-sidecar-writer.mjs';
 import { buildCmoLogFeedback } from '../server/cmo-log-feedback-reader.mjs';
-import { describeCmoInstall, findCmoImportExportRoot, findCmoLuaRoot } from './cmo-install-locator.mjs';
+import { describeCmoInstall, findCmoImportExportRoot, findCmoLuaRoot, findCmoScenariosRoot } from './cmo-install-locator.mjs';
+
+const BRIDGE_PROJECT_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
 export const INBOX_FILE_NAME = 'AiAssist_inbox.lua';
 export const INBOX_RUNSCRIPT_PATH = `/${DEFAULT_SCRIPT_FOLDER}/${INBOX_FILE_NAME}`;
@@ -777,6 +781,87 @@ async function commandCleanup(options) {
   };
 }
 
+export function buildScanDigest(summary) {
+  const missions = Array.isArray(summary?.missions) ? summary.missions : [];
+  const events = Array.isArray(summary?.events) ? summary.events : [];
+  const specialActions = Array.isArray(summary?.specialActions) ? summary.specialActions : [];
+  return {
+    title: summary?.scenario?.title || '',
+    setting: summary?.scenario?.setting || '',
+    currentSide: summary?.scenario?.currentSide || '',
+    sides: (Array.isArray(summary?.sides) ? summary.sides : []).map((side) => side?.name).filter(Boolean),
+    unitCounts: summary?.unitCounts || {},
+    missionCount: missions.length,
+    missions: missions.slice(0, 20).map((mission) => ({ name: mission?.name || '', kind: mission?.kind || '' })),
+    eventCount: events.length,
+    specialActionCount: specialActions.length,
+    warnings: Array.isArray(summary?.warnings) ? summary.warnings : [],
+  };
+}
+
+async function findLatestScen(root) {
+  let best = null;
+  const stack = [root];
+  while (stack.length) {
+    const dir = stack.pop();
+    let entries;
+    try {
+      entries = await readdir(dir, { withFileTypes: true });
+    } catch {
+      continue;
+    }
+    for (const entry of entries) {
+      const fullPath = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        stack.push(fullPath);
+      } else if (entry.isFile() && entry.name.toLowerCase().endsWith('.scen')) {
+        const fileStats = await stat(fullPath);
+        if (!best || fileStats.mtimeMs > best.mtimeMs) {
+          best = { path: fullPath, mtimeMs: fileStats.mtimeMs, mtime: fileStats.mtime.toISOString() };
+        }
+      }
+    }
+  }
+  return best;
+}
+
+async function commandScan(options) {
+  let scenPath = options.scen ? path.resolve(options.scen) : '';
+  let pickedLatest = null;
+  if (!scenPath && options.latest === true) {
+    pickedLatest = await findLatestScen(findCmoScenariosRoot());
+    if (!pickedLatest) throw new Error('Scenarios 폴더에서 .scen 파일을 찾지 못했습니다');
+    scenPath = pickedLatest.path;
+  }
+  if (!scenPath) throw new Error('Provide --scen "<path.scen>" or --latest (가장 최근 저장된 시나리오)');
+
+  const run = spawnSync(process.execPath, [
+    path.join(BRIDGE_PROJECT_ROOT, 'tools', 'prepare-cmo-scenario-sidecar.mjs'),
+    scenPath,
+  ], { encoding: 'utf8', cwd: BRIDGE_PROJECT_ROOT, timeout: 300_000 });
+
+  if (run.status !== 0) {
+    const tail = String(run.stderr || run.stdout || '').trim().split(/\r?\n/).slice(-4).join(' | ').slice(0, 500);
+    return { ok: false, scenarioPath: scenPath, error: `scenario decode failed: ${tail}` };
+  }
+
+  const summaryMatch = String(run.stdout || '').match(/^Summary\s*:\s*(.+)$/m);
+  if (!summaryMatch) {
+    return { ok: false, scenarioPath: scenPath, error: 'decoder ran but no summary path was reported' };
+  }
+  const summaryPath = path.resolve(BRIDGE_PROJECT_ROOT, summaryMatch[1].trim());
+  const summary = JSON.parse(await readFile(summaryPath, 'utf8'));
+
+  return {
+    ok: true,
+    scenarioPath: scenPath,
+    ...(pickedLatest ? { pickedLatestSavedAt: pickedLatest.mtime } : {}),
+    summaryPath,
+    digest: buildScanDigest(summary),
+    note: '전체 상세(유닛 좌표·미션 파라미터·이벤트 원문)는 summaryPath JSON에 있습니다. 게임에 아무 영향 없음 (.scen 읽기 전용).',
+  };
+}
+
 async function commandLogs(options) {
   return buildCmoLogFeedback({
     kind: options.kind || 'all',
@@ -786,8 +871,8 @@ async function commandLogs(options) {
   });
 }
 
-const FLAG_KEYS = new Set(['write', 'uninstall', 'help', 'via-inbox', 'diff', 'inst']);
-const VALUE_KEYS = new Set(['file', 'lua', 'slug', 'interval', 'kind', 'since', 'limit', 'max-bytes', 'cmo-lua-root', 'period', 'units-limit', 'wait', 'older-than-hours']);
+const FLAG_KEYS = new Set(['write', 'uninstall', 'help', 'via-inbox', 'diff', 'inst', 'latest']);
+const VALUE_KEYS = new Set(['file', 'lua', 'slug', 'interval', 'kind', 'since', 'limit', 'max-bytes', 'cmo-lua-root', 'period', 'units-limit', 'wait', 'older-than-hours', 'scen']);
 
 function parseArgs(argv) {
   const options = {};
@@ -823,6 +908,7 @@ function usage() {
     '                                             Emit the one-time in-game poller (un)installer',
     '  telemetry-install [--period 15] [--uninstall] [--via-inbox] [--write]',
     '                                             Emit the periodic unit-state exporter (un)installer',
+    '  scan --scen "<path.scen>" | --latest       Decode a saved scenario into a sidecar summary (zero game impact)',
     '  telemetry [--units-limit 50] [--diff]      Read unit dumps; --diff reports lost/new/moved vs last read',
     '  query --lua "<code with return>" [--wait 90]',
     '                                             Publish a live query via inbox and wait for the result',
@@ -841,6 +927,7 @@ const COMMANDS = {
   'install-poller': commandInstallPoller,
   'telemetry-install': commandTelemetryInstall,
   telemetry: commandTelemetry,
+  scan: commandScan,
   query: commandQuery,
   cleanup: commandCleanup,
   logs: commandLogs,

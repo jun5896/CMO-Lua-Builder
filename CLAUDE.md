@@ -16,14 +16,18 @@ npm run bridge -- apply --file <draft.lua> --slug <name> --write   # 1회성 초
 npm run bridge -- inbox --file <draft.lua> --write            # 폴러가 자동 실행하는 inbox 발행
 npm run bridge -- install-poller --write                      # 인게임 폴러 (un)installer 생성
 npm run bridge -- logs --kind exception --limit 10            # 실행 결과/에러 회수 (read-only)
-npm run bridge -- telemetry-install --via-inbox --write       # 준실시간 유닛 텔레메트리 (시나리오당 1회)
-npm run bridge -- telemetry [--diff]                          # 유닛 상태 판독; --diff = 소실/신규/이동 요약
-npm run bridge -- query --lua "return ScenEdit_GetScore('X')" # 라이브 질의 왕복 (게임 시계 필요, 기본 90초 대기)
+npm run bridge -- scan --latest                               # ★ 기본: 저장된 시나리오를 통째로 해부 (게임 무간섭)
 npm run bridge -- cleanup [--write]                           # 오래된 1회성 AiAssist 파일 정리
+npm run bridge -- telemetry-install --via-inbox --write       # (옵트인) 준실시간 유닛 텔레메트리
+npm run bridge -- telemetry [--diff]                          # (옵트인) 유닛 상태 판독/변화 요약
+npm run bridge -- query --lua "return ..."                    # (옵트인) 라이브 질의 — 폴러+게임 시계 필요
 ```
 
-텔레메트리 v2: 이동유닛(항공기/함선/잠수함)은 매 주기, 전체 목록(시설/지상 포함)은
-편성 변화 시에만 `AiAssist_full_<side>.inst`로 export. comment에 시나리오 제목+게임시각 탑재.
+**상황 파악 기본 방식은 on-demand scan** (2026-07-06 사용자 확정): 사용자가 게임에서
+저장(Save As 권장) → `scan --latest`가 게임의 자체 디코더로 .scen을 해부 → 진영·유닛
+(좌표/DBID)·미션·독트린·이벤트 전부 sidecar JSON으로. 게임에 아무것도 심지 않아 팝업
+일시정지·성능 간섭이 없다. 텔레메트리/query/폴러는 실시간 감시가 꼭 필요할 때만 설치하는
+옵트인 도구다 (제거: `install-poller --uninstall`, `telemetry-install --uninstall`).
 
 ## AI 백엔드 선택 / 교차검수 위임
 

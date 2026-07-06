@@ -22,7 +22,7 @@ npm run ask -- --backend <id> --prompt "..."                  # 다른 모델에
 
 표준 루프: 사용자 요구 → Lua 초안 작성 → `apply`(수동 1줄) 또는 `inbox`(폴러 자동 실행) → `logs`로 에러 회수 → 수정 반복. 결과 KeyValue는 `aiassist_inbox_result`.
 
-라이브 상태 파악: ① 텔레메트리 설치 후 `telemetry`로 이동유닛 좌표를 주기 판독하고 `--diff`로 소실/신규/이동을 요약한다(전체 목록은 편성 변화 시 `AiAssist_full_*`로 갱신). ② 임의 질의(점수·미션 등)는 `query --lua`가 [inbox 발행→폴러 실행→comment 채널 회수]를 자동으로 처리한다(게임 시계 필요). ③ 콘솔에서 실행된 출력은 LuaHistory(`logs`)로도 회수 가능.
+상황 파악 기본 방식 = **on-demand scan** (게임 무간섭, 2026-07-06 사용자 확정): 사용자가 시나리오를 저장하면 `bridge scan --latest`(또는 `--scen <path>`)가 .scen을 디코드해 진영·유닛·미션·독트린·이벤트 전체를 sidecar JSON으로 만든다. 실시간 감시가 꼭 필요할 때만 옵트인: ① 텔레메트리(`telemetry-install`, 이동유닛 주기 export + `--diff`), ② `query --lua`(inbox→comment 채널 왕복, 폴러+게임 시계 필요), ③ 콘솔 출력 회수(LuaHistory, `logs`).
 
 **세션 시작 규약**: 대화 드라이버는 먼저 `bridge status`로 상황(시나리오·텔레메트리 신선도·예외)을 브리핑한 뒤 지시를 기다린다.
 
