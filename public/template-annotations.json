@@ -4,64 +4,130 @@
   "guideRules": [
     {
       "id": "mission",
-      "keywords": ["mission", "patrol", "strike", "support", "ferry"],
+      "keywords": [
+        "mission",
+        "patrol",
+        "strike",
+        "support",
+        "ferry"
+      ],
       "title": "Mission Control",
       "plain": "임무를 만들거나 기존 임무의 활성 상태, 배정 유닛, 순찰/타격 영역을 조정하는 계열입니다.",
-      "prerequisites": ["CMO Mission Editor에서 Side와 Mission 이름을 먼저 확인합니다.", "임무가 RP/Zone을 참조하면 해당 RP가 같은 Side에 존재해야 합니다."],
+      "prerequisites": [
+        "CMO Mission Editor에서 Side와 Mission 이름을 먼저 확인합니다.",
+        "임무가 RP/Zone을 참조하면 해당 RP가 같은 Side에 존재해야 합니다."
+      ],
       "safePattern": "ScenEdit_GetMission으로 존재 여부를 확인한 뒤 Add/Set/Assign을 호출하세요. 반복 이벤트라면 KeyValue나 존재 체크로 중복 생성을 막습니다.",
       "aiHint": "Mission 이름, Side 이름, 배정할 Unit GUID/이름을 명시하고, 없으면 AI가 추측하지 말고 사용자에게 확인 요청하도록 지시합니다."
     },
     {
       "id": "unit",
-      "keywords": ["unit", "spawn", "loadout", "aircraft", "ship", "submarine"],
+      "keywords": [
+        "unit",
+        "spawn",
+        "loadout",
+        "aircraft",
+        "ship",
+        "submarine"
+      ],
       "title": "Unit Spawn / Edit",
       "plain": "유닛을 추가, 삭제, 위치/고도/속도/Loadout을 변경하거나 이미 배치된 유닛을 조작하는 계열입니다.",
-      "prerequisites": ["DBID/Loadout ID는 현재 시나리오 DB 기준으로 Database Viewer에서 확인합니다.", "배치된 유닛은 우클릭 메뉴의 Copy unit ID to clipboard GUID를 우선 사용합니다."],
+      "prerequisites": [
+        "DBID/Loadout ID는 현재 시나리오 DB 기준으로 Database Viewer에서 확인합니다.",
+        "배치된 유닛은 우클릭 메뉴의 Copy unit ID to clipboard GUID를 우선 사용합니다."
+      ],
       "safePattern": "ScenEdit_GetUnit 결과가 nil인지 확인하고, DBID/Loadout ID는 주석으로 출처를 남기세요.",
       "aiHint": "AI에게 플랫폼 DBID, Loadout ID, 배치 유닛 GUID의 출처를 명시하게 하고, 불명확하면 placeholder 대신 확인 질문을 내도록 지시합니다."
     },
     {
       "id": "reference",
-      "keywords": ["reference", "point", "zone", "area", "rp", "nav"],
+      "keywords": [
+        "reference",
+        "point",
+        "zone",
+        "area",
+        "rp",
+        "nav"
+      ],
       "title": "Reference Points / Zones",
       "plain": "RP를 만들거나 이동하고, No-Nav/Exclusion Zone 또는 이벤트 영역을 참조하는 계열입니다.",
-      "prerequisites": ["맵 좌표와 RP/Zone 생성은 CMO 내부 UI에서 처리하는 것이 안전합니다.", "Zone polygon의 Area/RPoint와 Side의 일반 ReferencePoint를 혼동하지 않습니다."],
+      "prerequisites": [
+        "맵 좌표와 RP/Zone 생성은 CMO 내부 UI에서 처리하는 것이 안전합니다.",
+        "Zone polygon의 Area/RPoint와 Side의 일반 ReferencePoint를 혼동하지 않습니다."
+      ],
       "safePattern": "RP/Zone 이름은 Side 단위로 확인하고, 삭제보다는 Set/Update를 우선 사용하세요.",
       "aiHint": "AI에게 좌표를 새로 만들게 하기보다 CMO에서 만든 RP/Zone 이름을 받아 Lua가 참조하도록 지시합니다."
     },
     {
       "id": "event",
-      "keywords": ["event", "trigger", "condition", "action", "regular", "detected", "destroyed"],
+      "keywords": [
+        "event",
+        "trigger",
+        "condition",
+        "action",
+        "regular",
+        "detected",
+        "destroyed"
+      ],
       "title": "Event Automation",
       "plain": "CMO Event Editor의 Trigger/Condition/Action 구조에 Lua Script Action을 붙이는 계열입니다.",
-      "prerequisites": ["Trigger와 Condition은 가능하면 CMO UI에서 만들고, Lua는 Action 본문으로 붙입니다.", "반복 이벤트인지 1회성 이벤트인지 먼저 결정합니다."],
+      "prerequisites": [
+        "Trigger와 Condition은 가능하면 CMO UI에서 만들고, Lua는 Action 본문으로 붙입니다.",
+        "반복 이벤트인지 1회성 이벤트인지 먼저 결정합니다."
+      ],
       "safePattern": "이벤트가 반복 실행될 수 있으면 ScenEdit_GetKeyValue/SetKeyValue 또는 명확한 상태 체크를 둡니다.",
       "aiHint": "AI에게 이벤트 이름, 트리거 방식, 반복 정책, Lua를 붙일 위치를 분리해서 응답하도록 요구합니다."
     },
     {
       "id": "doctrine",
-      "keywords": ["doctrine", "emcon", "wra", "posture"],
+      "keywords": [
+        "doctrine",
+        "emcon",
+        "wra",
+        "posture"
+      ],
       "title": "Doctrine / EMCON",
       "plain": "교전 규칙, WRA, 레이더/소나/통신 방출 상태, Side posture를 바꾸는 계열입니다.",
-      "prerequisites": ["적용 범위가 Side, Mission, Group, Unit 중 어디인지 먼저 정합니다.", "CMO UI의 Doctrine/EMCON 값과 동일한 토큰을 사용합니다."],
+      "prerequisites": [
+        "적용 범위가 Side, Mission, Group, Unit 중 어디인지 먼저 정합니다.",
+        "CMO UI의 Doctrine/EMCON 값과 동일한 토큰을 사용합니다."
+      ],
       "safePattern": "좁은 범위의 Unit/Group부터 테스트하고, 전체 Side 변경은 검증 후 적용하세요.",
       "aiHint": "AI에게 적용 범위와 되돌리는 조건을 같이 설계하게 하세요. 특히 EMCON은 값 추측을 금지합니다."
     },
     {
       "id": "weather",
-      "keywords": ["weather", "wind", "sea", "cloud", "rain"],
+      "keywords": [
+        "weather",
+        "wind",
+        "sea",
+        "cloud",
+        "rain"
+      ],
       "title": "Weather",
       "plain": "전역 날씨, 해상 상태, 바람, 구름 등을 바꿔 센서/항공/해상 작전에 영향을 주는 계열입니다.",
-      "prerequisites": ["날씨는 전역 효과이므로 모든 Side와 센서 모델에 영향을 줄 수 있습니다.", "수치 범위는 CMO Lua 문서와 실제 콘솔 테스트로 확인합니다."],
+      "prerequisites": [
+        "날씨는 전역 효과이므로 모든 Side와 센서 모델에 영향을 줄 수 있습니다.",
+        "수치 범위는 CMO Lua 문서와 실제 콘솔 테스트로 확인합니다."
+      ],
       "safePattern": "짧은 주기로 급격히 바꾸지 말고, 이벤트 로그 메시지로 변경 사실을 남기세요.",
       "aiHint": "AI에게 날씨 수치의 의미와 예상 영향, 테스트 방법을 같이 설명하도록 요구합니다."
     },
     {
       "id": "message",
-      "keywords": ["message", "briefing", "score", "victory", "special"],
+      "keywords": [
+        "message",
+        "briefing",
+        "score",
+        "victory",
+        "special"
+      ],
       "title": "Messaging / Scoring",
       "plain": "플레이어 메시지, 점수, 승패 조건, 브리핑성 알림을 처리하는 계열입니다.",
-      "prerequisites": ["메시지를 받을 Side 이름과 점수 변경 대상 Side를 확인합니다.", "시나리오 종료 함수는 되돌릴 수 없으므로 조건을 확실히 둡니다."],
+      "prerequisites": [
+        "메시지를 받을 Side 이름과 점수 변경 대상 Side를 확인합니다.",
+        "시나리오 종료 함수는 되돌릴 수 없으므로 조건을 확실히 둡니다."
+      ],
       "safePattern": "점수/종료 로직은 조건 확인 후 실행하고, 로그에 남길 짧은 사유 문자열을 포함하세요.",
       "aiHint": "AI에게 사용자 표시 메시지와 내부 점수 로직을 분리해서 출력하게 하면 검수하기 쉽습니다."
     }
@@ -381,7 +447,8 @@
       "beginnerNotes": [
         "경고, 작전 지시, 정보 보고 같은 텍스트를 플레이어에게 보여줄 때 사용합니다.",
         "radio는 주파수/밴드가 보이는 무전 형식, telex는 수신국/발신국/우선순위가 있는 전문 형식입니다.",
-        "현재 게임 시간이 메시지에 들어가 작전 분위기를 강화합니다."
+        "현재 게임 시간이 메시지에 들어가 작전 분위기를 강화합니다.",
+        "Build 1877+에서는 ScenEdit_CustomUI로 \"raise pop up\" 설정 제약 없이 커스텀 팝업 UI를 띄울 수 있습니다 (docs/references/cmo-beta-builds-2026-04-to-06.md 참조)."
       ],
       "prerequisites": [
         "메시지를 받을 Side 이름을 확인합니다.",

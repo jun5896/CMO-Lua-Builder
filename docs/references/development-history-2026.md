@@ -6,7 +6,7 @@
 ## 1기 — 멀티에이전트 개발 (2026-04-17 ~ 2026-05-13, 288 커밋)
 
 구 PC(`~/.codex/cmo-lua-ui`)에서 4개 AI 에이전트 분업으로 개발. 파일 소유권과 핸드오프
-우편함(`handoff/to-{claude,kimi,gemini}/CURRENT_TASK.md`)으로 조정했다.
+우편함(`docs/archive-handoff/to-{claude,kimi,gemini}/CURRENT_TASK.md` — 2026-07-06 아카이브 위치로 이동)으로 조정했다.
 
 | 에이전트 | 역할 | 소유 파일 |
 |---|---|---|
@@ -16,7 +16,7 @@
 | Gemini | 언어 품질 — 한국어/영문 용어 일관성 | `docs/**` (기능 코드 불가) |
 
 작업 단위마다 "설계 리뷰(Claude) → 구현(Codex) → QA(Kimi) → 릴리스 태그"의 게이트를 돌렸고,
-그 산출물이 `docs/agent-ops/`, `docs/superpowers/`, `handoff/*/_archive/`에 남아 있다.
+그 산출물이 `docs/agent-ops/`, `docs/superpowers/`, `docs/archive-handoff/*/_archive/`에 남아 있다.
 
 ### 릴리스 타임라인 (태그 17개)
 

@@ -31,7 +31,7 @@ npm run ask -- --backend <id> --prompt "..."                  # 다른 모델에
 ## 실행 명령
 
 ```powershell
-cd "C:\Users\dlwls\.codex\cmo-lua-ui"
+cd "D:\works\CMO-Lua-Builder"
 
 npm install                       # 의존성 설치
 npm run dev -- --host 127.0.0.1   # Vite 개발 서버 (기본 http://127.0.0.1:5173)
@@ -100,7 +100,7 @@ public/
 
 docs/                       # 계약서, 가이드, 에이전트 운영 기록
 fixtures/                   # 테스트 픽스처, 파서 검증 스펙
-handoff/                    # 다중 에이전트 간 작업 전달 우편함
+docs/archive-handoff/       # (1기 아카이브) 다중 에이전트 간 작업 전달 우편함
 ```
 
 ## 핵심 데이터 흐름
@@ -203,6 +203,6 @@ handoff/                    # 다중 에이전트 간 작업 전달 우편함
 
 ### 핸드오프
 
-- `handoff/to-{claude,kimi,gemini}/CURRENT_TASK.md`로 작업 전달
+- (1기 방식, 종료됨) `docs/archive-handoff/to-{claude,kimi,gemini}/CURRENT_TASK.md`로 작업 전달
 - 핸드오프 내용: 변경 파일, 새 명령, 입출력 계약, 예제 출력, 제한사항, 검증 결과
 - Claude ↔ Codex 간 `~/.claude/`와 `~/.codex/` 크로스 쓰기 금지

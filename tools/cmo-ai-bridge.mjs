@@ -825,6 +825,36 @@ async function findLatestScen(root) {
   return best;
 }
 
+const SCEN_BACKUP_ROOT = path.join(path.dirname(BRIDGE_PROJECT_ROOT), 'cmo-scenario-backups');
+const SCEN_BACKUPS_KEPT = 10;
+
+async function backupScen(scenPath) {
+  const base = path.basename(scenPath, path.extname(scenPath));
+  const slug = base.toLowerCase().replace(/[^a-z0-9가-힣]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60) || 'scenario';
+  const folder = path.join(SCEN_BACKUP_ROOT, slug);
+  await mkdir(folder, { recursive: true });
+
+  const sourceStats = await stat(scenPath);
+  const stampSource = sourceStats.mtime.toISOString().replace(/[-:]/g, '').replace(/\..+/, '').replace('T', '_');
+  const backupFile = path.join(folder, `${stampSource}.scen`);
+
+  let created = false;
+  try {
+    await stat(backupFile); // same save already backed up
+  } catch {
+    await writeFile(backupFile, await readFile(scenPath));
+    created = true;
+  }
+
+  // Keep the newest N backups per scenario.
+  const entries = (await readdir(folder)).filter((name) => name.endsWith('.scen')).sort().reverse();
+  for (const stale of entries.slice(SCEN_BACKUPS_KEPT)) {
+    await rm(path.join(folder, stale), { force: true });
+  }
+
+  return { backupFile, created, kept: Math.min(entries.length, SCEN_BACKUPS_KEPT) };
+}
+
 async function commandScan(options) {
   let scenPath = options.scen ? path.resolve(options.scen) : '';
   let pickedLatest = null;
@@ -835,10 +865,23 @@ async function commandScan(options) {
   }
   if (!scenPath) throw new Error('Provide --scen "<path.scen>" or --latest (가장 최근 저장된 시나리오)');
 
+  let backup = null;
+  if (options['no-backup'] !== true) {
+    try {
+      backup = await backupScen(scenPath);
+    } catch (error) {
+      backup = { error: `backup failed: ${error.message}` };
+    }
+  }
+
+  const env = { ...process.env };
+  if (options.full === true) env.CMO_SUM_MAX_UNITS = '100000';
+
   const run = spawnSync(process.execPath, [
     path.join(BRIDGE_PROJECT_ROOT, 'tools', 'prepare-cmo-scenario-sidecar.mjs'),
     scenPath,
-  ], { encoding: 'utf8', cwd: BRIDGE_PROJECT_ROOT, timeout: 300_000 });
+    ...(options['keep-xml'] === true ? ['--keep-xml'] : []),
+  ], { encoding: 'utf8', cwd: BRIDGE_PROJECT_ROOT, env, timeout: 300_000 });
 
   if (run.status !== 0) {
     const tail = String(run.stderr || run.stdout || '').trim().split(/\r?\n/).slice(-4).join(' | ').slice(0, 500);
@@ -857,8 +900,9 @@ async function commandScan(options) {
     scenarioPath: scenPath,
     ...(pickedLatest ? { pickedLatestSavedAt: pickedLatest.mtime } : {}),
     summaryPath,
+    backup,
     digest: buildScanDigest(summary),
-    note: '전체 상세(유닛 좌표·미션 파라미터·이벤트 원문)는 summaryPath JSON에 있습니다. 게임에 아무 영향 없음 (.scen 읽기 전용).',
+    note: '전체 상세(유닛 좌표·독트린·미션 파라미터)는 summaryPath JSON에 있습니다. --full=유닛 캡 해제, --keep-xml=원문 XML 보존. 게임에 아무 영향 없음.',
   };
 }
 
@@ -871,7 +915,7 @@ async function commandLogs(options) {
   });
 }
 
-const FLAG_KEYS = new Set(['write', 'uninstall', 'help', 'via-inbox', 'diff', 'inst', 'latest']);
+const FLAG_KEYS = new Set(['write', 'uninstall', 'help', 'via-inbox', 'diff', 'inst', 'latest', 'full', 'keep-xml', 'no-backup']);
 const VALUE_KEYS = new Set(['file', 'lua', 'slug', 'interval', 'kind', 'since', 'limit', 'max-bytes', 'cmo-lua-root', 'period', 'units-limit', 'wait', 'older-than-hours', 'scen']);
 
 function parseArgs(argv) {
@@ -908,7 +952,8 @@ function usage() {
     '                                             Emit the one-time in-game poller (un)installer',
     '  telemetry-install [--period 15] [--uninstall] [--via-inbox] [--write]',
     '                                             Emit the periodic unit-state exporter (un)installer',
-    '  scan --scen "<path.scen>" | --latest       Decode a saved scenario into a sidecar summary (zero game impact)',
+    '  scan --scen "<path.scen>" | --latest [--full] [--keep-xml] [--no-backup]',
+    '                                             Decode a saved scenario (zero game impact); auto-backs up the .scen',
     '  telemetry [--units-limit 50] [--diff]      Read unit dumps; --diff reports lost/new/moved vs last read',
     '  query --lua "<code with return>" [--wait 90]',
     '                                             Publish a live query via inbox and wait for the result',

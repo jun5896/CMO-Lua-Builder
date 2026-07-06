@@ -301,6 +301,32 @@ function harvestSidesAndChildren(xml, warnings) {
       }
     }
 
+    // Side-level Doctrine (flat leaf elements only, e.g. EMCON/ROE/WRA scalars).
+    // Extracted generically as key→text so AI drafts can read the current
+    // engagement rules without guessing schema; nested blocks are counted,
+    // not expanded (2026-07-06, scan-first workflow).
+    const doctrineEl = findElement(sideBody, 'Doctrine');
+    let doctrine = null;
+    if (doctrineEl) {
+      doctrine = {};
+      let nestedBlocks = 0;
+      let keys = 0;
+      const leafRe = /<([A-Za-z0-9_]+)>([^<]*)<\/\1\s*>|<([A-Za-z0-9_]+)(?:\s[^>]*)?>[\s\S]*?<\/\3\s*>/g;
+      let dm;
+      while ((dm = leafRe.exec(doctrineEl.body)) !== null) {
+        if (dm[1] !== undefined) {
+          if (keys < 120) {
+            doctrine[dm[1]] = dm[2];
+            keys += 1;
+          }
+        } else {
+          nestedBlocks += 1;
+        }
+      }
+      if (nestedBlocks > 0) doctrine._nestedBlocks = nestedBlocks;
+      if (keys >= 120) doctrine._truncated = true;
+    }
+
     // Per-side mission harvest (polymorphic <Patrol|Strike|*Mission|...>)
     const missionsEl = findElement(sideBody, 'Missions');
     let sideMissionCount = 0;
@@ -427,6 +453,7 @@ function harvestSidesAndChildren(xml, warnings) {
       nature,
       operation,
       postures,
+      doctrine,
       counts: {
         missions: sideMissionCount,
         referencePoints: sideRPCount,
