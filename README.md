@@ -2,9 +2,15 @@
 
 Vite + React 기반의 Command: Modern Operations Lua template / preset / scenario sidecar / AI assistant 작업 UI입니다.
 
-현재 공개 제품 릴리스는 `release-2026-05-13-cmo-lua-builder-cmo-wiki-reference-helper`입니다. `main` 브랜치에는 릴리스 이후 handoff/QA 문서 정리와 작은 운영 UI polish가 이어질 수 있습니다.
+## 프로젝트 상태 및 유지관리
 
-2026-07-04부터 로컬 작업 사본은 `D:\works\CMO-Lua-Builder`입니다 (구 PC의 `~/.codex/cmo-lua-ui`는 폐기). CMO 설치 경로는 `tools/cmo-install-locator.mjs`가 Steam 라이브러리(`libraryfolders.vdf`)를 스캔해 자동 감지하며, `CMO_ROOT` / `CMO_LUA_ROOT` / `CMO_LOGS_ROOT` / `CMO_SCENARIOS_ROOT` 환경 변수로 오버라이드할 수 있습니다.
+2026-10-07 공개한 개인 개발 프로젝트입니다. 이 날짜 기준으로 GitHub에 배포 릴리스·패키지를 게시하지 않았으며, 외부 사용 또는 의존 프로젝트 실적도 아직 확인되지 않았습니다. `main`은 개발 중인 소스 기준선입니다. 과거 문서의 릴리스명과 검증 결과는 당시 개발 기록입니다.
+
+- 프로젝트 및 보안 유지관리자: **Junyoung Lim ([@jun5896](https://github.com/jun5896))**
+- 보안 제보 접수·재현·수정·회귀 검증: 위 유지관리자가 담당합니다. [보안 정책](SECURITY.md)과 [비공개 취약점 제보](https://github.com/jun5896/CMO-Lua-Builder/security/advisories/new)를 이용해 주세요.
+- 직접 작성한 코드·문서: [MIT License](LICENSE). 번들 자료와 의존성의 적용 범위는 [Third-party notices](THIRD_PARTY_NOTICES.md)를 확인해 주세요.
+
+CMO 설치 경로는 `tools/cmo-install-locator.mjs`가 Steam 라이브러리(`libraryfolders.vdf`)를 스캔해 자동 감지하며, `CMO_ROOT` / `CMO_LUA_ROOT` / `CMO_LOGS_ROOT` / `CMO_SCENARIOS_ROOT` 환경 변수로 오버라이드할 수 있습니다.
 
 ## AI Bridge (GUI 없이 CLI로 직접 사용)
 
@@ -37,7 +43,8 @@ BYOK 키는 환경변수로만 읽으며 디스크에 저장하지 않습니다.
 `index.html`을 더블클릭해서 직접 실행하는 방식이 아닙니다. Vite 개발 서버가 React, ES module import, `/public` 정적 파일 경로를 처리해야 합니다.
 
 ```powershell
-cd "D:\works\CMO-Lua-Builder"
+git clone https://github.com/jun5896/CMO-Lua-Builder.git
+cd CMO-Lua-Builder
 npm install
 npm run dev -- --host 127.0.0.1
 ```
@@ -105,11 +112,18 @@ AI adapter는 로컬에서 provider 요청을 중계합니다. 저장된 provide
 npm run smoke:ai-adapter
 ```
 
+보안 유지관리 기록:
+
+- [업스트림 오류 응답의 인증정보 노출 수정 기록 (2026-05-03)](docs/contracts/ai-provider-calibration-resolution-2026-05-03.md): 오류 응답 본문 제거, 응답 정제, 회귀 검증을 기록한 내부 개발 문서입니다.
+- [회귀 테스트](server/verify-upstream-redaction.mjs): 로컬 모의 서버가 HTTP 401 응답에 가짜 인증정보를 포함할 때 어댑터 응답·로그에 테스트 키 또는 Bearer 패턴이 노출되는지 검사합니다. 로컬 포트 `8766`과 `8899`를 사용합니다.
+
+위 자료는 AI 도구를 활용한 프로젝트 내부 개발·검증 기록이며, 외부 독립 감사나 CVE 발급 실적을 뜻하지 않습니다. 이 테스트는 해당 오류 응답 경로를 검증하며 프로젝트 전체의 안전성을 보장하지 않습니다.
+
 AI가 생성한 Lua는 paste-ready gate를 통과해야 UI에서 Working Draft로 적용할 수 있습니다. UI에서는 이를 검증 완료 코드가 아닌 `Lua 초안`으로 안내하며, 적용 후에도 반드시 CMO 엔진에서 직접 실행 검증하세요.
 
 ## QA Baseline
 
-최종 확인에 사용한 표준 파이프라인입니다.
+기존 개발 검증에 사용한 표준 파이프라인입니다. 아래 결과와 번들 크기는 당시 기준선이며, 현재 커밋의 새 실행 결과를 의미하지 않습니다. 시나리오 관련 단계에는 별도의 CMO 설치와 로컬 데이터가 필요합니다.
 
 ```powershell
 npm run verify:release
@@ -137,7 +151,7 @@ npm run smoke:ai-client-parser
 npm run smoke:ai-adapter
 ```
 
-현재 bundle 기준선:
+기록된 bundle 기준선:
 
 - Main JS: `253.81 kB`
 - Main CSS: `59.45 kB`
@@ -164,3 +178,5 @@ npm run smoke:ai-adapter
 - Installed Lua examples: `public/cmo-installed-lua/`
 
 `cmo-lua-dev-work`의 template/preset을 다시 수정했다면 `public/cmo-dev-work`를 다시 동기화해야 UI Inspector에도 최신 내용이 반영됩니다.
+
+`public/**` 및 `fixtures/**`의 자료는 프로젝트 코드에 대한 MIT 허가의 일괄 적용 대상에서 제외됩니다. 개별 출처·재배포 조건은 [Third-party notices](THIRD_PARTY_NOTICES.md)를 확인해 주세요.
