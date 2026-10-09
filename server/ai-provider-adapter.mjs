@@ -27,6 +27,7 @@
  *     #   AI_PROVIDER_TYPE=openai-compatible | ollama | lm-studio
  *
  * Endpoints:
+ *     GET  /api/session                -> local session bootstrap (custom header required)
  *     GET  /api/ai/settings            -> redacted current config
  *     POST /api/ai/settings            -> update config (in-memory only by default)
  *     POST /api/ai/test-provider       -> ping configured provider, return ok/error
@@ -39,7 +40,8 @@
  *
  * Security:
  *     - Binds to 127.0.0.1 only.
- *     - CORS limited to http://127.0.0.1:5173 / http://localhost:5173 (Vite dev).
+ *     - Exact loopback Host / allowed Origin checks, plus per-start session tokens.
+ *     - Provider keys are bound to their configured recipient.
  *     - API keys never appear in logs or responses (preview-only when needed).
  *     - .env values are loaded into process.env at startup; not echoed.
  *     - Settings PUT/POST never persists to disk in this prototype (codex
@@ -70,6 +72,8 @@ import { createLuaSidecar } from './cmo-lua-sidecar-writer.mjs';
 import { buildCmoLogFeedback } from './cmo-log-feedback-reader.mjs';
 import { buildCmoStateSnapshot } from './cmo-state-snapshot-importer.mjs';
 import { findCmoRoot } from '../tools/cmo-install-locator.mjs';
+import { createAdapterSecurity, RequestError, requireObject } from './adapter-security.mjs';
+import { mergeProviderConfig } from './provider-config.mjs';
 
 // -----------------------------------------------------------------------------
 // Boot
@@ -94,6 +98,7 @@ const ALLOWED_ORIGINS = new Set([
   'http://127.0.0.1:4173',  // Vite preview
   'http://localhost:4173',
 ]);
+const requestSecurity = createAdapterSecurity(ALLOWED_ORIGINS);
 
 // In-memory config. NOT persisted in this prototype.
 const config = {
@@ -200,16 +205,18 @@ function readBody(req, limit = 1_000_000) {
     let data = '';
     req.setEncoding('utf-8');
     req.on('data', (chunk) => {
+      if (total > limit) return;
       total += chunk.length;
       if (total > limit) {
-        reject(new Error('Request body too large'));
-        req.destroy();
+        data = '';
+        reject(new RequestError('Request body too large', 413));
         return;
       }
       data += chunk;
     });
     req.on('end', () => resolve(data));
     req.on('error', reject);
+    req.on('aborted', () => reject(new RequestError('Request aborted')));
   });
 }
 
@@ -230,16 +237,6 @@ function readBinaryBody(req, limit = TRANSIENT_SCENARIO_LIMIT_BYTES) {
     req.on('end', () => resolve(Buffer.concat(chunks)));
     req.on('error', reject);
   });
-}
-
-function applyCors(req, res) {
-  const origin = req.headers.origin;
-  if (origin && ALLOWED_ORIGINS.has(origin)) {
-    res.setHeader('Access-Control-Allow-Origin', origin);
-    res.setHeader('Vary', 'Origin');
-  }
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-CMO-Scenario-File-Name');
 }
 
 function sendJson(res, status, body) {
@@ -346,43 +343,17 @@ async function handleSettingsGet(_req, res) {
 }
 
 async function handleSettingsPost(req, res) {
-  let body;
-  try {
-    body = JSON.parse(await readBody(req));
-  } catch (e) {
-    return sendJson(res, 400, { ok: false, error: 'Invalid JSON body' });
-  }
-  if (typeof body !== 'object' || body === null) {
-    return sendJson(res, 400, { ok: false, error: 'Body must be an object' });
-  }
-  const update = body.settings ?? body;
-
-  if (typeof update.providerType === 'string') {
-    if (!PROVIDER_TYPES.has(update.providerType)) {
-      return sendJson(res, 400, {
-        ok: false,
-        error: `Unsupported providerType. Supported: ${[...PROVIDER_TYPES].join(', ')}`,
-      });
-    }
-    config.providerType = update.providerType;
-  }
-  if (typeof update.baseUrl === 'string')     config.baseUrl     = update.baseUrl;
-  if (typeof update.apiKey === 'string')      config.apiKey      = update.apiKey;
-  if (typeof update.model === 'string')       config.model       = update.model;
-  if (typeof update.cliHome === 'string')     config.cliHome     = update.cliHome;
-  if (update.generationMode === 'provider-default' || update.generationMode === 'manual') {
-    config.generationMode = update.generationMode;
-  }
-  if (typeof update.temperature === 'number') config.temperature = update.temperature;
-  if (typeof update.maxTokens === 'number')   config.maxTokens   = update.maxTokens;
+  const body = await readJsonObject(req);
+  const update = Object.hasOwn(body, 'settings') ? body.settings : body;
+  // Validate the complete update before mutating any saved state.
+  Object.assign(config, mergeProviderConfig(config, update, { settings: true }));
 
   logSafe(`settings updated: provider=${config.providerType} model=${config.model} key=${redactKey(config.apiKey)}`);
   sendJson(res, 200, { ok: true, settings: redactedConfig() });
 }
 
 async function handleTestProvider(req, res) {
-  const overrides = await readJsonOrEmpty(req);
-  const merged = { ...config, ...overrides };
+  const merged = mergeProviderConfig(config, await readJsonObject(req));
   if (!merged.baseUrl && !isCliProviderType(merged.providerType)) {
     return sendJson(res, 400, { ok: false, error: 'baseUrl not configured' });
   }
@@ -396,8 +367,7 @@ async function handleTestProvider(req, res) {
 }
 
 async function handleListModels(req, res) {
-  const overrides = await readJsonOrEmpty(req);
-  const merged = { ...config, ...overrides };
+  const merged = mergeProviderConfig(config, await readJsonObject(req));
   if (!merged.baseUrl && !isCliProviderType(merged.providerType)) {
     return sendJson(res, 400, { ok: false, error: 'baseUrl not configured' });
   }
@@ -411,27 +381,23 @@ async function handleListModels(req, res) {
 }
 
 async function handleChat(req, res) {
-  let body;
-  try {
-    body = JSON.parse(await readBody(req));
-  } catch (e) {
-    return sendJson(res, 400, { ok: false, error: 'Invalid JSON body' });
-  }
+  const body = await readJsonObject(req);
   if (!Array.isArray(body.messages) || body.messages.length === 0) {
     return sendJson(res, 400, { ok: false, error: 'messages[] required' });
   }
-  const merged = {
-    ...config,
-    ...(body.providerOverride || {}),
-    messages: body.messages,
-    generationMode: body.generationMode || body.providerOverride?.generationMode || config.generationMode,
-    temperature: typeof body.temperature === 'number'
-      ? body.temperature
-      : (typeof body.providerOverride?.temperature === 'number' ? body.providerOverride.temperature : config.temperature),
-    maxTokens: typeof body.maxTokens === 'number'
-      ? body.maxTokens
-      : (typeof body.providerOverride?.maxTokens === 'number' ? body.providerOverride.maxTokens : config.maxTokens),
-  };
+  for (const message of body.messages) {
+    requireObject(message, 'Message');
+    if (!['system', 'user', 'assistant'].includes(message.role) || typeof message.content !== 'string') {
+      throw new RequestError('Messages require a supported role and string content');
+    }
+  }
+  const overrides = Object.hasOwn(body, 'providerOverride')
+    ? requireObject(body.providerOverride, 'providerOverride') : {};
+  const generation = {};
+  for (const field of ['generationMode', 'temperature', 'maxTokens']) {
+    if (Object.hasOwn(body, field)) generation[field] = body[field];
+  }
+  const merged = { ...mergeProviderConfig(config, { ...overrides, ...generation }), messages: body.messages };
   if (!merged.baseUrl && !isCliProviderType(merged.providerType)) {
     return sendJson(res, 400, { ok: false, error: 'baseUrl not configured' });
   }
@@ -460,7 +426,7 @@ async function handleTransientScenarioOpen(req, res) {
 
   try {
     if (contentType.includes('application/json')) {
-      const body = JSON.parse(await readBody(req, 80_000));
+      const body = await readJsonObject(req, 80_000);
       scenarioPath = String(body.scenarioPath || '').trim();
       displayName = String(body.fileName || '').trim();
       if (!scenarioPath) {
@@ -486,6 +452,7 @@ async function handleTransientScenarioOpen(req, res) {
     logSafe(`transient scenario open ${result.fileName} -> ok`);
     return sendJson(res, 200, result);
   } catch (err) {
+    if (err instanceof RequestError) throw err;
     logSafe(`transient scenario open -> fail ${err?.message || err}`);
     return sendJson(res, 502, {
       ok: false,
@@ -502,7 +469,7 @@ async function handleTransientScenarioOpen(req, res) {
 
 async function handleCmoLuaSidecar(req, res) {
   try {
-    const body = await readJsonOrEmpty(req);
+    const body = await readJsonObject(req);
     const result = await createLuaSidecar({
       content: body.content,
       slug: body.slug,
@@ -545,7 +512,7 @@ async function handleCmoLogFeedback(_req, res, url) {
 
 async function handleCmoStateSnapshotImport(req, res) {
   try {
-    const body = await readJsonOrEmpty(req);
+    const body = await readJsonObject(req);
     const result = buildCmoStateSnapshot(String(body.text ?? ''), {
       sourceHint: body.sourceHint,
     });
@@ -582,13 +549,15 @@ function deepScrubSecrets(value) {
   return value;
 }
 
-async function readJsonOrEmpty(req) {
+async function readJsonObject(req, limit) {
+  const raw = await readBody(req, limit);
+  let body;
   try {
-    const raw = await readBody(req);
-    return raw ? JSON.parse(raw) : {};
+    body = JSON.parse(raw);
   } catch {
-    return {};
+    throw new RequestError('Invalid JSON body');
   }
+  return requireObject(body);
 }
 
 function sanitizeError(err, ctx) {
@@ -607,8 +576,8 @@ function sanitizeError(err, ctx) {
 // Server
 // -----------------------------------------------------------------------------
 
-const server = createServer(async (req, res) => {
-  applyCors(req, res);
+async function dispatch(req, res) {
+  requestSecurity.checkRequest(req, res, server.address().port);
 
   if (req.method === 'OPTIONS') {
     res.statusCode = 204;
@@ -620,6 +589,21 @@ const server = createServer(async (req, res) => {
   const path = url.pathname.replace(/\/+$/, '');
   const method = req.method;
 
+  if (method === 'GET' && (path === '/api/health' || path === '')) {
+    return sendJson(res, 200, { ok: true, service: 'cmo-lua-ai-adapter', version: '0.1.0' });
+  }
+  if (method === 'GET' && path === '/api/session') {
+    return sendJson(res, 200, { ok: true, token: requestSecurity.bootstrap(req) });
+  }
+  requestSecurity.authorize(req, res);
+  if (method === 'POST') {
+    const mediaType = String(req.headers['content-type'] || '').split(';')[0].trim().toLowerCase();
+    if (mediaType !== 'application/json'
+        && !(path === '/api/scenario/transient-open' && mediaType === 'application/octet-stream')) {
+      throw new RequestError('Unsupported Content-Type', 415);
+    }
+  }
+
   if (method === 'GET' && path === '/api/ai/settings')           return handleSettingsGet(req, res);
   if (method === 'POST' && path === '/api/ai/settings')          return handleSettingsPost(req, res);
   if (method === 'POST' && path === '/api/ai/test-provider')     return handleTestProvider(req, res);
@@ -629,22 +613,24 @@ const server = createServer(async (req, res) => {
   if (method === 'GET' && path === '/api/cmo/log-feedback')      return handleCmoLogFeedback(req, res, url);
   if (method === 'POST' && path === '/api/cmo/state-snapshot/import') return handleCmoStateSnapshotImport(req, res);
   if (method === 'POST' && path === '/api/scenario/transient-open') return handleTransientScenarioOpen(req, res);
-  if (method === 'GET' && (path === '/api/health' || path === '')) {
-    return sendJson(res, 200, {
-      ok: true,
-      service: 'cmo-lua-ai-adapter',
-      version: '0.1.0',
-      providerType: config.providerType,
-      baseUrl: config.baseUrl,
-      model: config.model,
-    });
-  }
 
   sendJson(res, 404, { ok: false, error: `Not found: ${method} ${path}` });
+}
+
+const server = createServer((req, res) => {
+  // http.createServer does not observe rejected promises from async listeners.
+  dispatch(req, res).catch((error) => {
+    if (res.destroyed || res.writableEnded) return;
+    if (res.headersSent) { res.destroy(); return; }
+    sendJson(res, error instanceof RequestError ? error.status : 500, {
+      ok: false,
+      error: error instanceof RequestError ? error.message : 'Internal adapter error',
+    });
+  });
 });
 
 server.listen(PORT, HOST, () => {
-  logSafe(`listening on http://${HOST}:${PORT}`);
+  logSafe(`listening on http://${HOST}:${server.address().port}`);
   logSafe(`provider=${config.providerType} baseUrl=${config.baseUrl || '(unset)'} model=${config.model || '(unset)'} key=${config.apiKey ? '<configured>' : '(unset)'}`);
 });
 

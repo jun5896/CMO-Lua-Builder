@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import assert from 'node:assert/strict';
+import { createAdapterTransport } from '../src/lib/adapterTransport.js';
 import { once } from 'node:events';
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { spawn } from 'node:child_process';
@@ -8,6 +9,8 @@ import path from 'node:path';
 
 const ADAPTER_PORT = 8768;
 const tmp = await mkdtemp(path.join(os.tmpdir(), 'cmo-log-feedback-endpoint-'));
+
+const adapterFetch = createAdapterTransport(`http://127.0.0.1:${ADAPTER_PORT}`);
 
 function startAdapter() {
   const proc = spawn(process.execPath, ['server/ai-provider-adapter.mjs'], {
@@ -39,7 +42,7 @@ async function waitForAdapter() {
 }
 
 async function getLogFeedback(query = '') {
-  const response = await fetch(`http://127.0.0.1:${ADAPTER_PORT}/api/cmo/log-feedback${query}`);
+  const response = await adapterFetch(`http://127.0.0.1:${ADAPTER_PORT}/api/cmo/log-feedback${query}`);
   const json = await response.json();
   return { status: response.status, json };
 }

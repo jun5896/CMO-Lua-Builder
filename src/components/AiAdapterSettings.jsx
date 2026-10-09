@@ -351,7 +351,7 @@ export default function AiAdapterSettings() {
             />
             {aiProviderForm.apiKeyConfigured && (
               <p className="ai-model-picker-hint">
-                API key 입력칸은 보안상 비웁니다. 적용된 key는 adapter 메모리에만 유지되며 브라우저 저장소에는 저장하지 않습니다.
+                API key 입력칸은 보안상 비웁니다. 적용된 key는 adapter 메모리에만 유지됩니다. 제공자 주소를 바꾸면 기존 key는 초기화되므로 새 설정을 먼저 저장하거나 새 key를 입력한 뒤 테스트하세요.
               </p>
             )}
           </label>

@@ -1,6 +1,26 @@
 # CMO Lua Builder
 
+[![CI](https://github.com/jun5896/CMO-Lua-Builder/actions/workflows/ci.yml/badge.svg)](https://github.com/jun5896/CMO-Lua-Builder/actions/workflows/ci.yml)
+
 A Vite + React workspace for authoring Command: Modern Operations (CMO) Lua scripts, managing templates and presets, inspecting scenario sidecars, and reviewing AI-assisted drafts.
+
+## Defensive Security Maintenance
+
+Security maintenance focuses on the project's own code and local integration
+boundaries: untrusted browser requests, provider credentials, CLI invocation,
+imported scenario data, and AI-generated output.
+
+The [October 9, 2026 maintenance record](docs/security-maintenance.md) connects
+four completed security fixes to their implementation and regression tests.
+It covers local request authorization and key destination binding, CLI command
+injection prevention, safe PowerShell command generation, and malformed-request
+handling. Local lint, build, focused security checks, and existing smoke checks
+passed; published revisions have inspectable [CI runs](https://github.com/jun5896/CMO-Lua-Builder/actions/workflows/ci.yml).
+
+See the [security policy and reporting channel](SECURITY.md) for maintainer
+responsibilities, scope, and how to report a vulnerability. The maintenance record
+also separates [planned defensive review](docs/security-maintenance.md#planned-defensive-review)
+from completed work.
 
 ## Project Status and Maintenance
 
@@ -106,6 +126,40 @@ When no matching summary sidecar exists, the AI adapter can open a `.scen` file 
 
 ## AI Adapter Safety
 
+Start the local adapter in a separate terminal with `npm run start:ai-adapter`.
+Use the UI at `http://127.0.0.1:5173` or `http://localhost:5173` (preview: port
+`4173`). Other browser origins and non-loopback Host headers are rejected.
+The UI obtains a per-start session token automatically, keeps it only in memory,
+and reconnects after an adapter restart.
+
+Custom local HTTP clients must first send `GET /api/session` with
+`X-CMO-Bootstrap: 1`, then send the returned token as `X-CMO-Session` on API
+requests. `GET /api/health` provides public readiness metadata only. JSON POSTs
+require `Content-Type: application/json`; scenario uploads use
+`application/octet-stream`. This protects against browser-origin requests; it
+does not isolate the adapter from other processes running as the same local user.
+
+An omitted API key is retained only for the same provider destination. Saving a
+different destination without a new key clears the stored key. When switching to
+a keyless local provider, save its settings before testing. Per-request destination
+overrides must supply a new key explicitly (or `apiKey: ""` for keyless use).
+HTTP redirects are rejected; configure the provider's final API URL directly.
+Grok prompt calls require a native executable: Windows `.cmd`/`.bat` shims are
+rejected before launch. CLIs that accept prompts on stdin keep that workflow.
+
+Scenario decoder commands are regenerated from paths, with literal PowerShell
+arguments, including apostrophes and typographic quotes. Cached command strings
+from older indexes or sessions are ignored. Regenerate an old openability index
+with `npm run audit:scenario-openability` before running its command validation.
+
+Focused regression checks use synthetic keys and local mock providers:
+
+```powershell
+npm run smoke:adapter-security
+npm run smoke:adapter-transport
+npm run smoke:command-boundaries  # Windows PowerShell; pwsh on other platforms
+```
+
 The AI adapter forwards provider requests locally. Saved provider profiles do not contain raw API keys. The smoke test checks for leakage of its synthetic test key and Bearer-token patterns:
 
 ```powershell
@@ -114,6 +168,7 @@ npm run smoke:ai-adapter
 
 Security maintenance records:
 
+- [Defensive security maintenance (October 9, 2026)](docs/security-maintenance.md): Four fixes with implementation links, reproducible regression checks, validation scope, and planned follow-up review.
 - [Upstream error-response credential redaction record (May 3, 2026)](docs/contracts/ai-provider-calibration-resolution-2026-05-03.md): An internal development record covering removal of upstream error bodies, response sanitization, and regression verification.
 - [Regression harness](server/verify-upstream-redaction.mjs): A local mock server includes a fake credential in an HTTP 401 response. The harness checks the adapter response and logs for the test key and Bearer-token patterns. It uses local ports `8766` and `8899`.
 

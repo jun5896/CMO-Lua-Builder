@@ -1,11 +1,14 @@
 #!/usr/bin/env node
 import assert from 'node:assert/strict';
+import { createAdapterTransport } from '../src/lib/adapterTransport.js';
 import { once } from 'node:events';
 import { readFile } from 'node:fs/promises';
 import { spawn } from 'node:child_process';
 import path from 'node:path';
 
 const ADAPTER_PORT = 8769;
+
+const adapterFetch = createAdapterTransport(`http://127.0.0.1:${ADAPTER_PORT}`);
 
 function startAdapter() {
   const proc = spawn(process.execPath, ['server/ai-provider-adapter.mjs'], {
@@ -36,7 +39,7 @@ async function waitForAdapter() {
 }
 
 async function postStateSnapshot(body) {
-  const response = await fetch(`http://127.0.0.1:${ADAPTER_PORT}/api/cmo/state-snapshot/import`, {
+  const response = await adapterFetch(`http://127.0.0.1:${ADAPTER_PORT}/api/cmo/state-snapshot/import`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),

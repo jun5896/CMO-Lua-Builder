@@ -14,7 +14,14 @@ function jsonResponse(body, { ok = true, status = 200 } = {}) {
 
 async function withFetch(handler, testBody) {
   const originalFetch = globalThis.fetch;
-  globalThis.fetch = handler;
+  globalThis.fetch = async (url, options) => {
+    if (url.endsWith('/api/session')) {
+      assert.equal(options.headers['X-CMO-Bootstrap'], '1');
+      return jsonResponse({ token: 'a'.repeat(64) });
+    }
+    assert.equal(options.headers['X-CMO-Session'], 'a'.repeat(64));
+    return handler(url, options);
+  };
 
   try {
     await testBody();

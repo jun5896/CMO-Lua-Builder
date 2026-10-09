@@ -39,6 +39,7 @@ import {
 } from '../lib/aiConfirmedContext';
 import { buildAdvisorySystemGuidance } from '../lib/aiAdvisoryGuidance';
 import { deriveAiWorkflowState } from '../lib/aiWorkflowState';
+import { buildScenarioDecoderCommand as safeScenarioDecoderCommand } from '../lib/scenarioCommands';
 
 const AiResponseReviewPanel = lazy(() => import('./AiResponseReviewPanel'));
 const AiInterpreterChatPanel = lazy(() => import('./AiInterpreterChatPanel'));
@@ -811,21 +812,7 @@ function buildScenarioSlug(value) {
 }
 
 function buildScenarioDecoderCommand(fileName, scenarioContext = {}) {
-  if (scenarioContext?.decoderCommands?.prepare) {
-    return scenarioContext.decoderCommands.prepare;
-  }
-
-  if (scenarioContext?.decoderCommands?.extractXml) {
-    return [
-      scenarioContext.decoderCommands.scan,
-      scenarioContext.decoderCommands.extractXml,
-      scenarioContext.decoderCommands.summarize,
-    ].filter(Boolean).join('\n');
-  }
-
-  const slug = buildScenarioSlug(fileName);
-  const scenarioPath = scenarioContext?.sourcePath || KNOWN_SCENARIO_PATHS[slug] || `C:\\path\\to\\${fileName || 'Scenario.scen'}`;
-  return `npm run prepare:scenario -- "${scenarioPath}"`;
+  return safeScenarioDecoderCommand(fileName, scenarioContext, KNOWN_SCENARIO_PATHS);
 }
 
 function luaArray(items, fallback) {

@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { buildScenarioCommands } from '../src/lib/scenarioCommands.js';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
@@ -258,16 +259,8 @@ async function walkScenarios(root, excludeRoots) {
   return result;
 }
 
-function buildCommands(scenarioPath, outputSlug) {
-  const xmlOut = `scenario-sidecars\\${outputSlug}.scenario.xml`;
-  const summaryOut = `scenario-sidecars\\${outputSlug}.summary.json`;
-  return {
-    prepare: `npm run prepare:scenario -- "${scenarioPath}" --slug "${outputSlug}"`,
-    scan: `npm run scan:scenario -- "${scenarioPath}" --out scenario-sidecars\\${outputSlug}.json`,
-    extractXml: `npm run extract:scenario-xml -- "${scenarioPath}" --OutXml "${xmlOut}"`,
-    summarize: `npm run summarize:scenario -- scenario-sidecars\\${outputSlug}.scenario.xml --out ${summaryOut}`,
-  };
-}
+// Shared with the UI: imported filenames stay literal PowerShell arguments.
+const buildCommands = buildScenarioCommands;
 
 async function sidecarStatus(fileName, title, outputSlug, strictOutputSlug = false) {
   const fileSlug = slug(fileName);

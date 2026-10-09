@@ -34,3 +34,16 @@ jobs:
       - run: npm run smoke:cmo-ai-bridge
       - run: npm run smoke:ai-backends
       - run: npm run smoke:ai-adapter
+      - run: npm run smoke:adapter-security
+      - run: npm run smoke:adapter-transport
+      - run: npm run smoke:cmo-lua-sidecar-endpoint
+
+  windows-command-boundaries:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      # No provider CLI or CMO install: mock spawning and parse PowerShell ASTs.
+      - run: node tools/verify-command-boundaries.mjs

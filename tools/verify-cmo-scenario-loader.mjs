@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { buildScenarioCommands } from '../src/lib/scenarioCommands.js';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import {
@@ -87,10 +88,9 @@ function sidecarBasename(sidecar = {}) {
   return path.basename(String(sidecar.file || '')).replace(/\.(summary\.json|scenario\.xml|json)$/i, '');
 }
 
-function commandLooksSafe(command = '') {
-  const text = String(command || '');
-  return text.startsWith('npm run prepare:scenario -- "')
-    && !text.includes('C:\\Users\\dlwls\\.codex\\cmo-lua-ui\\public\\scenario-scan-samples');
+function commandLooksSafe(scenario) {
+  const expected = buildScenarioCommands(scenario.scenarioPath, scenario.slug || slug(scenario.fileName));
+  return Object.entries(expected).every(([name, command]) => scenario.commands?.[name] === command);
 }
 
 async function verifyReadyScenario(scenario, issues) {
@@ -164,7 +164,7 @@ async function verifyIndex(indexPath) {
       issues.push({ level: 'error', fileName: scenario.fileName, message: 'missing fileName or scenarioPath' });
     }
 
-    if (!commandLooksSafe(scenario.commands?.prepare)) {
+    if (!commandLooksSafe(scenario)) {
       issues.push({ level: 'error', fileName: scenario.fileName, message: 'missing or unsafe prepare command' });
     }
 

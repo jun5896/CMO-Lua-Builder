@@ -1,4 +1,7 @@
+import { createAdapterTransport } from './adapterTransport.js';
+
 export const AI_ADAPTER_BASE_URL = 'http://127.0.0.1:8765';
+const adapterFetch = createAdapterTransport(AI_ADAPTER_BASE_URL);
 
 export const AI_PROVIDER_TYPES = [
   { id: 'openai-compatible', label: 'OpenAI compatible' },
@@ -104,13 +107,13 @@ export async function fetchAiAdapterHealth() {
 }
 
 export async function fetchAiAdapterSettings() {
-  const response = await fetch(`${AI_ADAPTER_BASE_URL}/api/ai/settings`);
+  const response = await adapterFetch(`${AI_ADAPTER_BASE_URL}/api/ai/settings`);
   const body = await readJsonResponse(response);
   return normalizeSettings(body?.settings);
 }
 
 export async function saveAiAdapterSettings(settings) {
-  const response = await fetch(`${AI_ADAPTER_BASE_URL}/api/ai/settings`, {
+  const response = await adapterFetch(`${AI_ADAPTER_BASE_URL}/api/ai/settings`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ settings: settingsPayload(settings) }),
@@ -120,7 +123,7 @@ export async function saveAiAdapterSettings(settings) {
 }
 
 export async function testAiAdapterProvider(settings) {
-  const response = await fetch(`${AI_ADAPTER_BASE_URL}/api/ai/test-provider`, {
+  const response = await adapterFetch(`${AI_ADAPTER_BASE_URL}/api/ai/test-provider`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(settingsPayload(settings)),
@@ -129,7 +132,7 @@ export async function testAiAdapterProvider(settings) {
 }
 
 export async function fetchAiProviderModels(settings) {
-  const response = await fetch(`${AI_ADAPTER_BASE_URL}/api/ai/models`, {
+  const response = await adapterFetch(`${AI_ADAPTER_BASE_URL}/api/ai/models`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(settingsPayload(settings)),
@@ -178,7 +181,7 @@ export async function sendCmoAiPrompt(userPrompt, options = {}) {
     if (typeof options.maxTokens === 'number') payload.maxTokens = options.maxTokens;
   }
 
-  const response = await fetch(`${AI_ADAPTER_BASE_URL}/api/ai/chat`, {
+  const response = await adapterFetch(`${AI_ADAPTER_BASE_URL}/api/ai/chat`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
@@ -201,7 +204,7 @@ export async function openScenarioTransient(file) {
     throw new Error('Scenario file required');
   }
 
-  const response = await fetch(`${AI_ADAPTER_BASE_URL}/api/scenario/transient-open`, {
+  const response = await adapterFetch(`${AI_ADAPTER_BASE_URL}/api/scenario/transient-open`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/octet-stream',
@@ -214,7 +217,7 @@ export async function openScenarioTransient(file) {
 }
 
 export async function saveCmoLuaSidecar(payload) {
-  const response = await fetch(`${AI_ADAPTER_BASE_URL}/api/cmo/lua-sidecar`, {
+  const response = await adapterFetch(`${AI_ADAPTER_BASE_URL}/api/cmo/lua-sidecar`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload || {}),
@@ -241,7 +244,7 @@ export async function fetchCmoLogFeedback(options = {}) {
   }
 
   const query = params.toString();
-  const response = await fetch(`${AI_ADAPTER_BASE_URL}/api/cmo/log-feedback${query ? `?${query}` : ''}`);
+  const response = await adapterFetch(`${AI_ADAPTER_BASE_URL}/api/cmo/log-feedback${query ? `?${query}` : ''}`);
   const body = await response.json().catch(() => ({}));
 
   if (!response.ok || body?.ok === false) {
@@ -255,7 +258,7 @@ export async function fetchCmoLogFeedback(options = {}) {
 }
 
 export async function importCmoStateSnapshot({ text, sourceHint } = {}) {
-  const response = await fetch(`${AI_ADAPTER_BASE_URL}/api/cmo/state-snapshot/import`, {
+  const response = await adapterFetch(`${AI_ADAPTER_BASE_URL}/api/cmo/state-snapshot/import`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({

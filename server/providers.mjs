@@ -40,13 +40,13 @@ export const PROVIDER_TYPES = new Set([
 
 const DEFAULT_TIMEOUT_MS = 60_000;
 
-function joinUrl(baseUrl, path) {
+export function joinUrl(baseUrl, path) {
   const base = baseUrl.replace(/\/+$/, '');
   const p = path.replace(/^\/+/, '');
   return `${base}/${p}`;
 }
 
-function openAiCompatibleUrl(baseUrl, path) {
+export function openAiCompatibleUrl(baseUrl, path) {
   const base = baseUrl.replace(/\/+$/, '');
   const p = path.replace(/^\/+/, '');
   if (/\/v1$/i.test(base) && p.toLowerCase().startsWith('v1/')) {
@@ -59,7 +59,9 @@ async function timedFetch(url, init, timeoutMs = DEFAULT_TIMEOUT_MS) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    const res = await fetch(url, { ...init, signal: controller.signal });
+    // Credentials are bound to the selected recipient, including custom
+    // x-api-key headers which fetch can preserve across cross-origin redirects.
+    const res = await fetch(url, { ...init, redirect: 'error', signal: controller.signal });
     return res;
   } finally {
     clearTimeout(timer);
@@ -352,9 +354,16 @@ export async function listProviderModels(cfg) {
  */
 export async function testProvider(cfg) {
   if (isCliProviderType(cfg.providerType)) {
-    const { resolveCliExecutable } = await import('./cli-providers.mjs');
+    const { resolveCliExecutable, cliShellMode } = await import('./cli-providers.mjs');
     const commandByType = { 'claude-cli': 'claude', 'codex-cli': 'codex', 'cursor-cli': 'cursor-agent', 'grok-cli': 'grok' };
     const executable = resolveCliExecutable(commandByType[cfg.providerType]);
+    if (executable) {
+      try {
+        cliShellMode(executable, { promptViaStdin: cfg.providerType !== 'grok-cli' });
+      } catch (error) {
+        return { ok: false, status: 400, providerType: cfg.providerType, baseUrl: '', reached: false, errorMessage: error.message };
+      }
+    }
     return {
       ok: Boolean(executable),
       status: executable ? 200 : 404,

@@ -45,5 +45,7 @@ Historical test results are not a complete security audit. The project had no es
 
 ## Existing security work
 
+- [Defensive security maintenance record (2026-10-09)](docs/security-maintenance.md): Four completed fixes covering local HTTP authorization and provider-key destination binding, CLI prompt handling, scenario command generation, and malformed JSON requests. Includes implementation links, synthetic regression evidence, validation limitations, and separately labeled follow-up work.
+- [Game-independent CI](.github/workflows/ci.yml) and [published run results](https://github.com/jun5896/CMO-Lua-Builder/actions/workflows/ci.yml). Focused checks: `smoke:adapter-security`, `smoke:adapter-transport`, and `smoke:command-boundaries`.
 - [Internal upstream-error redaction fix and verification record (2026-05-03)](docs/contracts/ai-provider-calibration-resolution-2026-05-03.md).
 - [Local regression harness](server/verify-upstream-redaction.mjs), run with `npm run smoke:ai-adapter`. It uses a fake key and local ports `8766` and `8899` to check the HTTP 401 echo scenario; it does not cover every credential or execution path.

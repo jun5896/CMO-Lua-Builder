@@ -9,6 +9,7 @@
  */
 
 import { spawn } from 'node:child_process';
+import { createAdapterTransport } from '../src/lib/adapterTransport.js';
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import {
@@ -30,6 +31,8 @@ const CACHE_ROOT = resolvePath(
   process.env.CMO_TRANSIENT_SCENARIO_CACHE_ROOT
     || joinPath(PROJECT_ROOT, '.scenario-extract-cache', 'transient-open'),
 );
+
+const adapterFetch = createAdapterTransport(`http://127.0.0.1:${ADAPTER_PORT}`);
 
 function fileCount(root) {
   if (!existsSync(root)) return 0;
@@ -117,7 +120,7 @@ async function main() {
   try {
     await waitForAdapter();
     const payload = readFileSync(scenarioPath);
-    const response = await fetch(`http://127.0.0.1:${ADAPTER_PORT}/api/scenario/transient-open`, {
+    const response = await adapterFetch(`http://127.0.0.1:${ADAPTER_PORT}/api/scenario/transient-open`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/octet-stream',

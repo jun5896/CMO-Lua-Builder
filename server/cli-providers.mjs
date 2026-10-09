@@ -166,7 +166,15 @@ function cliFailure(cfg, message) {
   };
 }
 
-export async function callCliProvider(cfg) {
+export function cliShellMode(executable, plan) {
+  const shell = /\.(cmd|bat)$/i.test(executable);
+  if (shell && !plan.promptViaStdin) {
+    throw new Error('grok-cli requires a native executable; .cmd/.bat shims cannot safely receive prompt arguments');
+  }
+  return shell;
+}
+
+export async function callCliProvider(cfg, { resolveExecutable = resolveCliExecutable, spawnProcess = spawn } = {}) {
   const timeoutMs = Number.isFinite(cfg.timeoutMs) ? cfg.timeoutMs : DEFAULT_CLI_TIMEOUT_MS;
   const home = String(cfg.cliHome || '').trim();
   if (home && !existsSync(home)) {
@@ -190,16 +198,22 @@ export async function callCliProvider(cfg) {
     return cliFailure(cfg, error.message);
   }
 
-  const executable = resolveCliExecutable(plan.command);
+  const executable = resolveExecutable(plan.command);
   if (!executable) {
     if (workDir) rmSync(workDir, { recursive: true, force: true });
     return cliFailure(cfg, `${plan.command} CLI not found on PATH`);
   }
 
-  const useShell = /\.(cmd|bat)$/i.test(executable);
+  let useShell;
+  try {
+    useShell = cliShellMode(executable, plan);
+  } catch (error) {
+    if (workDir) rmSync(workDir, { recursive: true, force: true });
+    return cliFailure(cfg, error.message);
+  }
 
   const result = await new Promise((resolve) => {
-    const child = spawn(executable, plan.args, {
+    const child = spawnProcess(executable, plan.args, {
       cwd: tmpdir(),
       env: { ...process.env, ...plan.envOverrides },
       shell: useShell,

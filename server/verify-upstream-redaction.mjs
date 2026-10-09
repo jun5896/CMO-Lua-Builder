@@ -22,6 +22,7 @@
  */
 
 import { createServer } from 'node:http';
+import { createAdapterTransport } from '../src/lib/adapterTransport.js';
 import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve as resolvePath } from 'node:path';
@@ -42,6 +43,8 @@ const FORBIDDEN = [
 // -----------------------------------------------------------------------------
 // Mock upstream provider
 // -----------------------------------------------------------------------------
+
+const adapterFetch = createAdapterTransport(`http://127.0.0.1:${ADAPTER_PORT}`);
 
 function startMockProvider() {
   return new Promise((resolveStart, rejectStart) => {
@@ -108,7 +111,7 @@ async function main() {
     await waitForAdapter();
 
     // Configure the adapter to point at the mock provider with the leaky test key.
-    const cfg = await fetch(`http://127.0.0.1:${ADAPTER_PORT}/api/ai/settings`, {
+    const cfg = await adapterFetch(`http://127.0.0.1:${ADAPTER_PORT}/api/ai/settings`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -121,7 +124,7 @@ async function main() {
     if (!cfg.ok) throw new Error(`settings POST failed: ${cfg.status}`);
 
     // Trigger the adversarial chat call.
-    const chat = await fetch(`http://127.0.0.1:${ADAPTER_PORT}/api/ai/chat`, {
+    const chat = await adapterFetch(`http://127.0.0.1:${ADAPTER_PORT}/api/ai/chat`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ messages: [{ role: 'user', content: 'hi' }] }),
