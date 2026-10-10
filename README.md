@@ -10,12 +10,19 @@ Security maintenance focuses on the project's own code and local integration
 boundaries: untrusted browser requests, provider credentials, CLI invocation,
 imported scenario data, and AI-generated output.
 
-The [October 9, 2026 maintenance record](docs/security-maintenance.md) connects
-four completed security fixes to their implementation and regression tests.
+The [security maintenance record](docs/security-maintenance.md) connects
+completed fixes to their implementation and regression tests.
 It covers local request authorization and key destination binding, CLI command
 injection prevention, safe PowerShell command generation, and malformed-request
 handling. Local lint, build, focused security checks, and existing smoke checks
 passed; published revisions have inspectable [CI runs](https://github.com/jun5896/CMO-Lua-Builder/actions/workflows/ci.yml).
+
+The October 10 follow-up unifies Lua safety screening across browser readiness,
+server writes, and the terminal bridge. Its regression corpus checks alternate
+call syntax, forbidden identifier aliases, global environment access, input
+bounds, rejected-write behavior, and normal bridge templates. This textual
+screen is not a Lua parser or execution sandbox; computed or encoded code and
+the effects of permitted CMO APIs still require review.
 
 See the [security policy and reporting channel](SECURITY.md) for maintainer
 responsibilities, scope, and how to report a vulnerability. The maintenance record
@@ -158,6 +165,7 @@ Focused regression checks use synthetic keys and local mock providers:
 npm run smoke:adapter-security
 npm run smoke:adapter-transport
 npm run smoke:command-boundaries  # Windows PowerShell; pwsh on other platforms
+npm run smoke:lua-safety
 ```
 
 The AI adapter forwards provider requests locally. Saved provider profiles do not contain raw API keys. The smoke test checks for leakage of its synthetic test key and Bearer-token patterns:
@@ -168,7 +176,7 @@ npm run smoke:ai-adapter
 
 Security maintenance records:
 
-- [Defensive security maintenance (October 9, 2026)](docs/security-maintenance.md): Four fixes with implementation links, reproducible regression checks, validation scope, and planned follow-up review.
+- [Defensive security maintenance](docs/security-maintenance.md): October 9 boundary fixes and October 10 shared Lua screening, with implementation links, reproducible regression checks, limitations, and planned follow-up review.
 - [Upstream error-response credential redaction record (May 3, 2026)](docs/contracts/ai-provider-calibration-resolution-2026-05-03.md): An internal development record covering removal of upstream error bodies, response sanitization, and regression verification.
 - [Regression harness](server/verify-upstream-redaction.mjs): A local mock server includes a fake credential in an HTTP 401 response. The harness checks the adapter response and logs for the test key and Bearer-token patterns. It uses local ports `8766` and `8899`.
 

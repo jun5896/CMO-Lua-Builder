@@ -31,7 +31,7 @@ The adapter is designed to bind to `127.0.0.1`, with a limited browser-origin li
 
 - Raw credentials must not be persisted in browser storage or committed to the repository, and must not be exposed in returned responses or logs. Key previews must not expose the complete credential.
 - Upstream error bodies must not be forwarded in a way that reveals credentials. Response scrubbing is defense in depth and is not proof that every secret format is recognized.
-- AI-generated Lua must pass the unsafe-code and placeholder checks before being offered for application. These checks are not a complete Lua sandbox. Fixed bridge-generated loader/poller code is a separate path from untrusted AI output.
+- Untrusted Lua drafts must pass the shared textual safety policy in `src/lib/luaSafety.js` before browser readiness or server/terminal writes. The browser also checks response formatting and placeholder completeness; these additional UI checks do not apply to terminal-authored drafts. The safety screen is not a Lua parser or sandbox and does not resolve computed/encoded code or prove allowed CMO APIs harmless. Fixed bridge-generated loader/poller code is a separate path from untrusted AI output.
 - Scenario analysis must preserve the original `.scen` file. Game-script writes must remain within the intended `Lua/AiAssist` workspace, and other file operations must respect their selected output paths.
 - Imported data, filenames, and generated content must not gain unintended access to local files or command execution.
 
@@ -45,6 +45,7 @@ Historical test results are not a complete security audit. The project had no es
 
 ## Existing security work
 
+- [Shared Lua screening follow-up (2026-10-10)](docs/security-maintenance.md#completed-work-october-10-2026): One policy for the browser, server writer and terminal bridge, with a cross-entry adversarial corpus, synthetic write rejection tests, and input bounds. Run `npm run smoke:lua-safety` and `npm run smoke:cmo-lua-sidecar-endpoint`.
 - [Defensive security maintenance record (2026-10-09)](docs/security-maintenance.md): Four completed fixes covering local HTTP authorization and provider-key destination binding, CLI prompt handling, scenario command generation, and malformed JSON requests. Includes implementation links, synthetic regression evidence, validation limitations, and separately labeled follow-up work.
 - [Game-independent CI](.github/workflows/ci.yml) and [published run results](https://github.com/jun5896/CMO-Lua-Builder/actions/workflows/ci.yml). Focused checks: `smoke:adapter-security`, `smoke:adapter-transport`, and `smoke:command-boundaries`.
 - [Internal upstream-error redaction fix and verification record (2026-05-03)](docs/contracts/ai-provider-calibration-resolution-2026-05-03.md).

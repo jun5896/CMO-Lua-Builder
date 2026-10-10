@@ -1,4 +1,5 @@
 import { createAdapterTransport } from './adapterTransport.js';
+import { inspectLuaSafety } from './luaSafety.js';
 
 export const AI_ADAPTER_BASE_URL = 'http://127.0.0.1:8765';
 const adapterFetch = createAdapterTransport(AI_ADAPTER_BASE_URL);
@@ -37,16 +38,6 @@ const REQUIRED_AI_RESPONSE_SECTIONS = [
 const PLACEHOLDER_PATTERNS = [
   /<[^>\n]{2,80}>/g,
   /\b(?:TODO|TBD|INSERT(?:_HERE)?|REPLACE(?:_ME)?|PLACEHOLDER|YOUR_[A-Z0-9_]+|UNIT_GUID|MISSION_NAME|SIDE_NAME|DBID_HERE)\b/gi,
-];
-
-const UNSAFE_LUA_PATTERNS = [
-  /\bos\s*\./i,
-  /\bio\s*\./i,
-  /\brequire\s*\(/i,
-  /\bdofile\s*\(/i,
-  /\bloadfile\s*\(/i,
-  /\bpackage\s*\./i,
-  /\bdebug\s*\./i,
 ];
 
 function stripTrailingSlash(value) {
@@ -388,10 +379,8 @@ export function parseAiInterpreterResponse(text) {
     blockers.push(`Placeholder tokens detected in Lua: ${placeholderHits.join(', ')}`);
   }
 
-  const unsafeHits = findPatternHits(lua, UNSAFE_LUA_PATTERNS);
-  if (unsafeHits.length) {
-    blockers.push(`Unsafe Lua surface detected: ${unsafeHits.join(', ')}`);
-  }
+  const luaSafety = inspectLuaSafety(lua);
+  blockers.push(...luaSafety.issues.map((issue) => issue.message));
 
   if (!sections.has('paste-ready lua')) {
     blockers.push('Required section missing: Paste-ready Lua.');
@@ -412,5 +401,7 @@ export function parseAiInterpreterResponse(text) {
     sectionsPresent,
     missingRequiredSections,
     hasPlaceholders: placeholderHits.length > 0,
+    luaSafetyPolicyVersion: luaSafety.policyVersion,
+    luaSafetyIssues: luaSafety.issues,
   };
 }

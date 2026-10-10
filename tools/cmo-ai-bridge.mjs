@@ -12,8 +12,9 @@
  *   logs            read-only, redacted tail of CMO ExceptionLog/LuaHistory files
  *
  * All output is a single JSON object on stdout. Every AI payload passes the
- * same unsafe-Lua gate as the UI path (os/io/require/dofile/loadfile/package/
- * debug/ScenEdit_RunScript are rejected). Only the fixed poller installer
+ * shared textual Lua safety policy via validateLuaSidecarContent. Browser-only
+ * response-format and placeholder checks do not apply to terminal drafts.
+ * Only the fixed poller installer
  * template - which is bridge-owned, not AI-authored - may contain the
  * ScenEdit_RunScript loader line.
  */

@@ -102,6 +102,22 @@ try {
   assert.equal(unsafe.status, 400);
   assert.match(unsafe.json.errorMessage, /Unsafe Lua surface/);
 
+  // Client-supplied readiness cannot bypass the same policy used by the UI.
+  for (const [index, content] of [
+    "ScenEdit_RunScript('/x.lua')",
+    "require 'socket'",
+    "local files = io; files.open('x')",
+    "_G['ScenEdit_'..'RunScript']('/x.lua')",
+  ].entries()) {
+    const fileName = `AiAssist_policy-rejected-${index}.lua`;
+    const rejected = await postSidecar({
+      content, fileName, isPasteReady: true, dryRun: false, confirmWrite: true,
+    });
+    assert.equal(rejected.status, 400);
+    assert.match(rejected.json.errorMessage, /Unsafe Lua surface/);
+    await assert.rejects(readFile(path.join(tmp, 'AiAssist', fileName)), { code: 'ENOENT' });
+  }
+
   const notReady = await postSidecar({
     content: 'print("not ready")',
     fileName: 'AiAssist_20260510_060004_not-ready.lua',

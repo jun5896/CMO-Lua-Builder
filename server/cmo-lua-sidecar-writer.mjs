@@ -1,21 +1,12 @@
 import { mkdir, open } from 'node:fs/promises';
 import path from 'node:path';
 import { findCmoLuaRoot } from '../tools/cmo-install-locator.mjs';
+import { inspectLuaSafety, LUA_SAFETY_POLICY_VERSION } from '../src/lib/luaSafety.js';
 
 export const DEFAULT_CMO_LUA_ROOT = findCmoLuaRoot();
 export const DEFAULT_SCRIPT_FOLDER = 'AiAssist';
 
 const FILE_NAME_RE = /^AiAssist_[A-Za-z0-9_-]{1,96}\.lua$/;
-const UNSAFE_LUA_PATTERNS = [
-  /\bos\s*\./i,
-  /\bio\s*\./i,
-  /\brequire\s*\(?/i,
-  /\bdofile\s*\(?/i,
-  /\bloadfile\s*\(?/i,
-  /\bpackage\s*\./i,
-  /\bdebug\s*\./i,
-  /\bScenEdit_RunScript\s*\(?/i,
-];
 
 function timestampForFile(date = new Date()) {
   const pad = (value) => String(value).padStart(2, '0');
@@ -49,16 +40,14 @@ export function sanitizeLuaSidecarFileName({ fileName = '', slug = '', now = new
 }
 
 export function validateLuaSidecarContent(content) {
-  const text = String(content || '').trimEnd();
-  if (!text.trim()) throw new Error('Lua content is required');
-
-  for (const pattern of UNSAFE_LUA_PATTERNS) {
-    if (pattern.test(text)) {
-      throw new Error(`Unsafe Lua surface rejected: ${pattern}`);
-    }
+  const result = inspectLuaSafety(content);
+  if (!result.ok) {
+    const error = new Error(result.issues.map((issue) => issue.message).join('; '));
+    error.code = 'LUA_POLICY_REJECTED';
+    error.issues = result.issues;
+    throw error;
   }
-
-  return `${text}\n`;
+  return result.normalizedLua;
 }
 
 function resolveTarget({ cmoLuaRoot, fileName }) {
@@ -88,6 +77,7 @@ function buildLuaSidecarPayload(options = {}) {
     lua,
     report: {
       ok: true,
+      luaSafetyPolicyVersion: LUA_SAFETY_POLICY_VERSION,
       mode: options.dryRun === false ? 'write' : 'dry-run',
       wroteFile: false,
       confirmedDryRun: options.dryRun !== false,

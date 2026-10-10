@@ -31,6 +31,7 @@ jobs:
       - run: npm run smoke:ai-adapter-client-state-snapshot
       - run: npm run smoke:cmo-wiki-code-assistant
       - run: npm run smoke:ai-client-parser
+      - run: npm run smoke:lua-safety
       - run: npm run smoke:cmo-ai-bridge
       - run: npm run smoke:ai-backends
       - run: npm run smoke:ai-adapter
@@ -47,3 +48,4 @@ jobs:
           node-version: 24
       # No provider CLI or CMO install: mock spawning and parse PowerShell ASTs.
       - run: node tools/verify-command-boundaries.mjs
+      - run: node tools/verify-lua-safety-contract.mjs

@@ -12,6 +12,62 @@ triaging and reproducing issues, implementing fixes, and maintaining regression
 coverage. Reports can be submitted through the
 [private reporting channel](../SECURITY.md#reporting-a-vulnerability).
 
+## Completed work: October 10, 2026
+
+At baseline `4bc0717eb097eaedf1d3f4c641996db849a456a7`, the browser marked
+`ScenEdit_RunScript('/x.lua')` and `require 'socket'` ready while the server
+writer rejected them. Both paths accepted `local files = io; files.open('x')`.
+These differences were reproduced through the parser and writer without
+executing Lua or contacting a model provider.
+
+The [shared Lua safety module](../src/lib/luaSafety.js) now supplies one
+versioned policy to the [browser response parser](../src/lib/aiAdapterClient.js)
+and [server writer](../server/cmo-lua-sidecar-writer.mjs). The terminal bridge
+continues to reach that same writer validation for apply, inbox and query.
+Complete forbidden identifier references are rejected, covering aliases,
+bracket access, alternate call forms, global environment access and dynamic
+loaders. Ordinary longer identifiers such as `requirements` and `workload`
+remain permitted. Non-string input, NUL characters and sources over 320,000
+UTF-16 code units are rejected before a file write. Successful writes preserve
+the existing trailing-whitespace normalization and final newline.
+
+The [cross-entry regression suite](../tools/verify-lua-safety-contract.mjs)
+includes 27 adversarial drafts and nine normal drafts. It compares browser,
+writer and inbox decisions; exercises real CLI dispatch against temporary
+directories; checks size/type boundaries and unchanged inbox contents after a
+rejection; and preserves fixed telemetry, query and poller templates. The
+[HTTP endpoint suite](../tools/verify-cmo-lua-sidecar-endpoint.mjs) verifies that
+forged readiness/write-confirmation flags cannot create forbidden files.
+Local lint, the production build and 21 distinct smoke suites passed on
+Windows with Node.js 24.16.0. The new shared-policy suite is also included in
+both Linux and Windows CI jobs. CI results for each published revision are
+available in [GitHub Actions](https://github.com/jun5896/CMO-Lua-Builder/actions/workflows/ci.yml).
+
+Reproduce these game-independent checks:
+
+```powershell
+npm run smoke:lua-safety
+npm run smoke:ai-client-parser
+npm run smoke:cmo-lua-sidecar-writer
+npm run smoke:cmo-lua-sidecar-endpoint
+npm run smoke:cmo-ai-bridge
+```
+
+### Scope and compatibility
+
+This is conservative textual screening. Reserved names can also cause rejection
+inside comments or strings; strings are inspected because CMO can later execute
+`ScriptText` values. Encoded or concatenated embedded Lua is not resolved, valid
+syntax is not established, and permitted game APIs can still change or damage
+scenario state. Passing the screen is not approval to execute a draft.
+
+Response sections and placeholders remain browser-only completeness checks.
+For example, the bridge's generated telemetry comments contain explanatory
+`<side>` text, which must not be treated as a user-supplied missing value. The
+fixed poller installer uses its existing trusted-template path; no untrusted
+HTTP or CLI input flag was added to bypass the policy. This work does not add
+target-bound approval, expiry or a replay ledger to the inbox.
+
 ## Completed work: October 9, 2026
 
 Four security issues were investigated and patched against development baseline
@@ -89,8 +145,8 @@ remains part of the regression checks.
 
 The following items are follow-up work, not completed security guarantees:
 
-- Review consistency of Lua validation across the UI, adapter, and terminal
-  bridge, including alternate syntax and generated-output handling.
+- Evaluate syntax-aware and embedded-code validation beyond the shared textual
+  screen, including encoded/constructed `ScriptText` and permitted API effects.
 - Review scenario identity, user approval, and replay handling around the
   file-based inbox and game-script application workflow.
 - Expand malformed-file and path-boundary cases for imported XML/JSON, scenario
