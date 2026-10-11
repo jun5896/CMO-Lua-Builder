@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>CmoWorkbench</AssemblyName>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+  </PropertyGroup>
+  <ItemGroup>
+    <Content Include="../worker.mjs" Link="runtime/desktop/worker.mjs" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="../core/*.mjs" Link="runtime/desktop/core/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="../../src/lib/luaSafety.js" Link="runtime/src/lib/luaSafety.js" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="../runtime-package.json" Link="runtime/package.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

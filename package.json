@@ -4,6 +4,10 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+    "desktop": "powershell -NoProfile -ExecutionPolicy Bypass -File tools/desktop.ps1 -Action run",
+    "desktop:build": "powershell -NoProfile -ExecutionPolicy Bypass -File tools/desktop.ps1 -Action build",
+    "smoke:desktop": "node tools/verify-desktop.mjs",
+    "smoke:desktop-ui": "powershell -NoProfile -ExecutionPolicy Bypass -File tools/desktop.ps1 -Action smoke",
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",

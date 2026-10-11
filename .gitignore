@@ -47,3 +47,8 @@ fixtures/iran-strike-xml-node-index.json
 server/.env
 server/.cmo-ai-settings.json
 server/.cmo-ai-backends.json
+
+# Native desktop output is separate from Vite's cleaned dist directory.
+desktop-dist/
+desktop/**/bin/
+desktop/**/obj/

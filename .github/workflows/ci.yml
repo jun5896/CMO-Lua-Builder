@@ -32,6 +32,7 @@ jobs:
       - run: npm run smoke:cmo-wiki-code-assistant
       - run: npm run smoke:ai-client-parser
       - run: npm run smoke:lua-safety
+      - run: npm run smoke:desktop
       - run: npm run smoke:cmo-ai-bridge
       - run: npm run smoke:ai-backends
       - run: npm run smoke:ai-adapter
@@ -49,3 +50,8 @@ jobs:
       # No provider CLI or CMO install: mock spawning and parse PowerShell ASTs.
       - run: node tools/verify-command-boundaries.mjs
       - run: node tools/verify-lua-safety-contract.mjs
+      - run: node tools/verify-desktop.mjs
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - run: powershell -NoProfile -ExecutionPolicy Bypass -File tools/desktop.ps1 -Action smoke

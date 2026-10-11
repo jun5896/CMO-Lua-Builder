@@ -2,7 +2,26 @@
 
 [![CI](https://github.com/jun5896/CMO-Lua-Builder/actions/workflows/ci.yml/badge.svg)](https://github.com/jun5896/CMO-Lua-Builder/actions/workflows/ci.yml)
 
-A Vite + React workspace for authoring Command: Modern Operations (CMO) Lua scripts, managing templates and presets, inspecting scenario sidecars, and reviewing AI-assisted drafts.
+A workspace for authoring Command: Modern Operations (CMO) Lua scripts, designing scenarios, and reviewing AI-assisted drafts. It includes a native Windows desktop workbench and the existing Vite + React authoring UI.
+
+## Native Windows Desktop
+
+The WPF desktop app offers **scenario authoring**, **Lua assistance**, and
+**side-specific play advice**, with separate materials and conversations for each
+scenario/side. It reads models from the user's configured OMP installation;
+provider credentials and account selection remain in OMP.
+
+```powershell
+npm run desktop            # Build and open the desktop app
+npm run desktop:build      # Produce desktop-dist/CmoWorkbench.exe
+```
+
+Building requires Windows, Node.js 24, and the .NET 8 SDK. No browser or web server
+is required. The first milestone supports local drafts, reviewed Lua export,
+per-session model/request limits, and concurrent independent advice sessions.
+It does not execute game orders or provide autonomous/RTMP play. See the
+[desktop guide](docs/desktop-workbench.md) for setup, observation format,
+persistence, tests, and the CMO edition boundary.
 
 ## Defensive Security Maintenance
 
