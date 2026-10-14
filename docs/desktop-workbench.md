@@ -66,6 +66,10 @@ can use one model with separate histories. No shared memory or general-purpose
 agent tools are exposed. The same desktop user can inspect every workspace;
 this is not isolation against the local machine owner or the model provider.
 
+The [repository security policy](../SECURITY.md) defines the boundaries that
+must hold. The [maintenance record](security-maintenance.md#completed-work-october-11-2026)
+links the implementation revision and offline verification evidence.
+
 The request limit counts dispatched attempts, including failed/cancelled calls.
 Clearing history does not reset it. It is a call-count cap, not a dollar budget.
 The maximum output-token setting is supplied to OMP. Oversized local context is

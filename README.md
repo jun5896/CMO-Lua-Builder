@@ -43,6 +43,18 @@ bounds, rejected-write behavior, and normal bridge templates. This textual
 screen is not a Lua parser or execution sandbox; computed or encoded code and
 the effects of permitted CMO APIs still require review.
 
+The native desktop workbench adds separate scenario/side conversations, a narrow
+play-observation import contract, bounded OMP child requests, and recovery-safe
+local persistence. Its [desktop maintenance record](docs/security-maintenance.md#completed-work-october-11-2026)
+links the implementation, offline tests, and published CI evidence. Session
+separation is not isolation against the local user or a shared model provider.
+
+The [October 14 dependency update](docs/security-maintenance.md#completed-work-october-14-2026)
+addresses known development-tool advisories and adds a synthetic Vite
+file-disclosure regression. CI runs `npm run audit:dependencies` for all npm
+dependencies. Dependabot proposes weekly npm and GitHub Actions updates for
+review; updates are not automatically merged by this configuration.
+
 See the [security policy and reporting channel](SECURITY.md) for maintainer
 responsibilities, scope, and how to report a vulnerability. The maintenance record
 also separates [planned defensive review](docs/security-maintenance.md#planned-defensive-review)
@@ -195,7 +207,7 @@ npm run smoke:ai-adapter
 
 Security maintenance records:
 
-- [Defensive security maintenance](docs/security-maintenance.md): October 9 boundary fixes and October 10 shared Lua screening, with implementation links, reproducible regression checks, limitations, and planned follow-up review.
+- [Defensive security maintenance](docs/security-maintenance.md): Boundary fixes, shared Lua screening, native desktop isolation controls, and dependency maintenance, with implementation links, reproducible regression checks, limitations, and planned follow-up review.
 - [Upstream error-response credential redaction record (May 3, 2026)](docs/contracts/ai-provider-calibration-resolution-2026-05-03.md): An internal development record covering removal of upstream error bodies, response sanitization, and regression verification.
 - [Regression harness](server/verify-upstream-redaction.mjs): A local mock server includes a fake credential in an HTTP 401 response. The harness checks the adapter response and logs for the test key and Bearer-token patterns. It uses local ports `8766` and `8899`.
 

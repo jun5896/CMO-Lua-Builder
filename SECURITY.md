@@ -21,19 +21,29 @@ Redact API keys, account/session tokens, personal file paths, and private scenar
 
 ## System and trust boundaries
 
-CMO-Lua-Builder is a local Lua authoring and scenario-analysis tool for Command: Modern Operations. Its security-relevant surfaces include the Vite/React interface (`src/`), the loopback Node.js adapter (`server/`), local file/CLI operations (`tools/`), and generated Lua passed to the game.
+CMO-Lua-Builder is a local Lua authoring and scenario-analysis tool for Command: Modern Operations. Its security-relevant surfaces include the native Windows workbench (`desktop/`), the Vite/React interface (`src/`), the loopback Node.js adapter (`server/`), local file/CLI operations (`tools/`), and generated Lua passed to the game.
 
 Assets include provider credentials, local files, original scenario files, and the integrity of generated scripts. Provider responses, AI-generated text and Lua, imported scenario/XML/JSON data, filenames, and browser-origin requests cross trust boundaries. The selected external AI provider receives the context sent to it; the user controls that selection and what data is supplied.
 
 The adapter is designed to bind to `127.0.0.1`, with a limited browser-origin list. Loopback binding and CORS are not substitutes for authorization, nor proof that browser-origin or imported input is safe. The deployment model is local use; it has not been established as suitable for shared or public hosting.
 
+The native workbench uses a WPF UI and a child Node.js worker over private standard-input/output pipes. It does not use the web adapter or expose an HTTP listener. Each OMP request starts its own `auth-gateway stdio` child with shell execution disabled. OMP owns provider login, credentials, account selection, and any provider-side fallback. The selected executable and installed OMP configuration are trusted local components; the workbench does not sandbox them or copy their credential stores.
+
+Desktop conversations, materials, drafts, model selections, and request counters are persisted as plaintext in the application's workspace directory. The UI defaults to `desktop-dist/workspace/workspace.json`; `CMO_DESKTOP_DATA` selects another location. This is not an encrypted credential store. Scenario/side separation controls which local conversation is sent to a provider; it does not isolate data from the same OS user or from a shared model provider.
+
+Development dependencies are also in scope. The Vite dev server processes HTTP requests; the lint/build toolchain processes source, CSS, source maps, and configuration. Vite's built-in file checks and this project's custom public/sidecar middleware are separate review surfaces. An npm audit result alone does not validate either surface or establish a complete security assessment.
+
 ## Security properties to preserve
 
 - Raw credentials must not be persisted in browser storage or committed to the repository, and must not be exposed in returned responses or logs. Key previews must not expose the complete credential.
 - Upstream error bodies must not be forwarded in a way that reveals credentials. Response scrubbing is defense in depth and is not proof that every secret format is recognized.
-- Untrusted Lua drafts must pass the shared textual safety policy in `src/lib/luaSafety.js` before browser readiness or server/terminal writes. The browser also checks response formatting and placeholder completeness; these additional UI checks do not apply to terminal-authored drafts. The safety screen is not a Lua parser or sandbox and does not resolve computed/encoded code or prove allowed CMO APIs harmless. Fixed bridge-generated loader/poller code is a separate path from untrusted AI output.
+- Untrusted Lua drafts must pass the shared textual safety policy in `src/lib/luaSafety.js` before browser readiness, desktop draft adoption/export, or server/terminal writes. The browser also checks response formatting and placeholder completeness; these additional UI checks do not apply to terminal-authored drafts. The safety screen is not a Lua parser or sandbox and does not resolve computed/encoded code or prove allowed CMO APIs harmless. Fixed bridge-generated loader/poller code is a separate path from untrusted AI output.
 - Scenario analysis must preserve the original `.scen` file. Game-script writes must remain within the intended `Lua/AiAssist` workspace, and other file operations must respect their selected output paths.
 - Imported data, filenames, and generated content must not gain unintended access to local files or command execution.
+- Desktop requests must include only the selected session's context, history, and applicable draft. Mode, scenario ID, and side ID must remain fixed for that conversation. Play-advice observations must match the session's scenario/side and the narrow `cmo-side-observation/v1` schema; unknown fields and whole-scenario exports must not be silently accepted. User-written prose can still contain hidden information, so the schema does not prove fog-of-war correctness.
+- Desktop model output is a draft or advice. It must not become automatic game execution, a general-purpose tool call, or a shared order queue. The current desktop worker exposes no game-execution command.
+- OMP calls must preserve argument-based spawning, request/response ID matching, bounded responses and timeouts, controlled errors, and discarded provider diagnostics. Cancellation of one session must not cancel another session's child. The workbench must not add an automatic retry that silently increases spend.
+- Desktop context, history, storage, and concurrent requests must remain bounded. Dispatched attempts count against the session request limit even if they fail or are cancelled; clearing history must not reset that counter. These are local call-count limits, not a provider billing cap. Invalid stored state must preserve the original file for recovery rather than silently overwriting it.
 
 ## Assessment context and limitations
 
@@ -45,6 +55,8 @@ Historical test results are not a complete security audit. The project had no es
 
 ## Existing security work
 
+- [Dependency maintenance and Vite regression (2026-10-14)](docs/security-maintenance.md#completed-work-october-14-2026): Patched development dependencies, a synthetic file-disclosure regression, and CI audit enforcement. Run `npm run audit:dependencies` and `npm run smoke:vite-security`.
+- [Native desktop boundaries (2026-10-11)](docs/security-maintenance.md#completed-work-october-11-2026): Separate side conversations, narrow observation imports, OMP process handling, persistence, and offline regression coverage. See the [desktop guide](docs/desktop-workbench.md); run `npm run smoke:desktop`.
 - [Shared Lua screening follow-up (2026-10-10)](docs/security-maintenance.md#completed-work-october-10-2026): One policy for the browser, server writer and terminal bridge, with a cross-entry adversarial corpus, synthetic write rejection tests, and input bounds. Run `npm run smoke:lua-safety` and `npm run smoke:cmo-lua-sidecar-endpoint`.
 - [Defensive security maintenance record (2026-10-09)](docs/security-maintenance.md): Four completed fixes covering local HTTP authorization and provider-key destination binding, CLI prompt handling, scenario command generation, and malformed JSON requests. Includes implementation links, synthetic regression evidence, validation limitations, and separately labeled follow-up work.
 - [Game-independent CI](.github/workflows/ci.yml) and [published run results](https://github.com/jun5896/CMO-Lua-Builder/actions/workflows/ci.yml). Focused checks: `smoke:adapter-security`, `smoke:adapter-transport`, and `smoke:command-boundaries`.

@@ -12,6 +12,131 @@ triaging and reproducing issues, implementing fixes, and maintaining regression
 coverage. Reports can be submitted through the
 [private reporting channel](../SECURITY.md#reporting-a-vulnerability).
 
+## Completed work: October 14, 2026
+
+Implemented in [commit `a9054db`](https://github.com/jun5896/CMO-Lua-Builder/commit/a9054db1b09ca85e1eb8272e883119116abdf7b2),
+with Windows test-path compatibility in
+[`ec2784b`](https://github.com/jun5896/CMO-Lua-Builder/commit/ec2784bba5e73ba65fd80b68aad77c2db3fd8ea9).
+
+Dependency review against baseline
+`3b37b1cbb9891ff2cba37d7b5f68dcec0c27ac76` found eight affected npm packages
+(six high, one moderate, one low). All were development dependencies;
+`npm audit --omit=dev` reported zero. Development tooling still processes local
+HTTP requests, source, CSS, source maps, and configuration, so these findings
+were addressed rather than excluded on that basis.
+
+| Package | Previous lock | Updated lock | Dependency path |
+| --- | --- | --- | --- |
+| `vite` | 8.0.10 | 8.0.16 | Web dev server and build |
+| `postcss` | 8.5.13 | 8.5.30 | Vite |
+| `nanoid` | 3.3.12 | 3.3.20 | PostCSS |
+| `source-map-js` | 1.2.1 | 1.2.2 | PostCSS |
+| `@babel/core` | 7.29.0 | 7.29.7 | ESLint React Hooks plugin |
+| `browserslist` | 4.28.2 | 4.29.3 | Babel compilation targets |
+| `baseline-browser-mapping` | 2.10.25 | 2.11.28 | Browserslist |
+| `brace-expansion` | 5.0.5 | 5.0.12 | ESLint / minimatch |
+
+The direct Vite requirement now starts at `^8.0.16`. Its upstream dependencies
+and the remaining affected transitive packages were updated within compatible
+dependency ranges, without `npm audit fix --force`. Runtime application
+dependencies and the desktop's OMP protocol were not changed.
+
+### Reproduction and limits
+
+For the upstream [Vite Windows file-access advisory](https://github.com/vitejs/vite/security/advisories/GHSA-fx2h-pf6j-xcff),
+an isolated loopback server used temporary synthetic `.env` and `tls.pem` files.
+Vite 8.0.10 returned their marker through NTFS default-data-stream paths with
+HTTP 200, although the direct `.env` path returned 403. With 8.0.16, both
+default-data-stream requests returned 403; a percent-encoded variant returned
+404. Normal public GET and HEAD requests remained supported. No real secrets,
+remote SMB server, or provider credentials were involved.
+
+The [regression test](../tools/verify-vite-security.mjs) now exercises those file
+paths with synthetic input in Linux and Windows CI. The Windows job exercises
+the affected filesystem behavior. It tests Vite's built-in file boundary;
+this project's custom public/sidecar middleware remains a separate surface.
+The other dependency findings were checked through resolved versions and npm's
+advisory data, not individual exploit reproductions. No NTLM credential-capture
+test was performed for the separate launch-editor advisory.
+
+### Validation evidence
+
+On Windows with Node.js 24.16.0 and npm 11.13.0, a disposable copy of the
+candidate passed clean `npm ci`, lint, the production build, the Vite regression,
+and full/production-only npm audits with zero findings. The new Vite test and
+23 existing smoke suites covered the adapter, Lua paths, desktop contracts,
+command boundaries, and native WPF build/render/interaction behavior.
+The Vite fixture resolves temporary directories to real paths so Windows 8.3
+aliases in `TEMP` do not invalidate the normal-file control; a synthetic short
+`TEMP` path was also checked without disabling Vite's file protections.
+
+The state-snapshot endpoint fixture initially failed to start because an
+unrelated local Python service occupied its fixed port 8769. The service was
+preserved. A temporary harness changed only the fixture port to an available
+loopback port; the original assertions then passed. This is distinct from an
+unmodified local run of that one test.
+
+For `ec2784b`, the [published CI run](https://github.com/jun5896/CMO-Lua-Builder/actions/runs/38532206763)
+passed both Linux verification and Windows command/native-UI verification.
+Linux CI passed the unmodified state-snapshot endpoint test on its original
+fixture port; Windows CI passed the Vite regression and native GUI smoke.
+
+Additional synthetic HTTP checks confirmed dev/preview HTML, JS/CSS, a public
+asset, and both sidecar URL aliases with GET/HEAD. The build output contained
+no `scenario-scan-samples` directory. These checks do not establish complete
+browser interaction coverage or a full custom-middleware security review.
+Live provider inference and game execution were not exercised.
+
+### Ongoing dependency checks
+
+```powershell
+npm ci
+npm run audit:dependencies
+npm audit --omit=dev
+npm run smoke:vite-security
+```
+
+[CI](../.github/workflows/ci.yml) now checks all npm dependencies at low severity
+or above on pushes to `main` and pull requests. Registry/audit failures fail the step;
+there is no suppressed-advisory list. [Dependabot](../.github/dependabot.yml)
+checks npm and GitHub Actions versions weekly and proposes updates for review.
+This configuration does not enable automatic merging or establish that every
+third-party vulnerability is known. Audit results are a dated dependency
+snapshot, not a complete security assessment or a CVP eligibility decision.
+
+## Completed work: October 11, 2026
+
+The native Windows workbench was introduced in
+[commit `3b37b1c`](https://github.com/jun5896/CMO-Lua-Builder/commit/3b37b1cbb9891ff2cba37d7b5f68dcec0c27ac76).
+Its [published CI run](https://github.com/jun5896/CMO-Lua-Builder/actions/runs/38140597173)
+passed the Linux verification job and the Windows command/native-UI job for
+that exact revision. The central security policy was extended on October 14
+to include these existing desktop boundaries.
+
+| Boundary | Implemented control | Inspectable evidence |
+| --- | --- | --- |
+| Scenario/side conversations | Immutable mode/scenario/side binding; requests contain only the selected session's context, history, and applicable draft. | [Session construction and persistence](../desktop/core/workspace.mjs), [offline regressions](../tools/verify-desktop.mjs) |
+| Imported play observations | Exact `cmo-side-observation/v1` fields, matching scenario/side, bounded values; reject whole-scenario and unknown-field input. | [Observation validator](../desktop/core/observations.mjs) |
+| OMP integration | Argument-based child spawning with no shell; only model-list/chat routes; per-request child, ID matching, response limit, timeout, cancellation, and controlled errors. | [OMP gateway](../desktop/core/omp-gateway.mjs) |
+| Resource use and storage | At most two active chats, per-session attempt counters, bounded context/history/state, serialized atomic replacement, and preservation of invalid stored files. | [Workspace](../desktop/core/workspace.mjs), [worker protocol](../desktop/worker.mjs) |
+| Lua drafts | Shared textual screening before model-draft adoption and UI export; advice never adopts executable output and the worker exposes no game-execution method. | [Workspace](../desktop/core/workspace.mjs), [native export handler](../desktop/CmoWorkbench/MainWindow.xaml.cs), [shared screen](../src/lib/luaSafety.js) |
+
+Run `npm run smoke:desktop` for offline contracts, or
+`npm run smoke:desktop-ui` on Windows for the native build/render/interaction
+smoke. The tests cover cross-side data rejection, independent cancellation,
+request counters, corrupt-state recovery, subprocess arguments, synthetic
+upstream errors, and Lua screening. They use mock providers, not paid inference
+or live game execution. The desktop package uses Node built-ins and local
+modules; it does not ship the Vite/React dependency tree.
+
+These controls do not isolate a session from the machine owner or a shared
+provider. The stored workspace is plaintext. Observation validation cannot
+prove that user-written prose obeys fog of war, and OMP's credential storage,
+account selection, and fallback behavior remain OMP's responsibility. Request
+limits count attempts rather than dollars, and cancellation cannot undo
+provider billing. The [desktop guide](desktop-workbench.md) documents these
+limits and the current authoring/advice scope.
+
 ## Completed work: October 10, 2026
 
 At baseline `4bc0717eb097eaedf1d3f4c641996db849a456a7`, the browser marked
