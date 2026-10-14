@@ -15,8 +15,10 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
+      - run: npm run audit:dependencies
       - run: npm run lint
       - run: npm run build
+      - run: npm run smoke:vite-security
       # Game-independent contract smokes only — sidecar audits and anything
       # touching a CMO install stay local.
       - run: npm run smoke:ai-workflow-state
@@ -47,6 +49,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run smoke:vite-security
       # No provider CLI or CMO install: mock spawning and parse PowerShell ASTs.
       - run: node tools/verify-command-boundaries.mjs
       - run: node tools/verify-lua-safety-contract.mjs

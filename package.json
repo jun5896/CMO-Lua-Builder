@@ -11,6 +11,8 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
+    "audit:dependencies": "npm audit --audit-level=low",
+    "smoke:vite-security": "node tools/verify-vite-security.mjs",
     "preview": "vite preview",
     "sync:cmo-examples": "node tools/sync-cmo-lua-examples.mjs",
     "scan:scenario": "node tools/scan-cmo-scenario-folder.mjs",
@@ -77,6 +79,6 @@
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.2",
     "globals": "^17.5.0",
-    "vite": "^8.0.10"
+    "vite": "^8.0.16"
   }
 }
