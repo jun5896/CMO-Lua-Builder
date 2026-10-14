@@ -1,12 +1,14 @@
 import assert from 'node:assert/strict';
-import { mkdtemp, writeFile } from 'node:fs/promises';
+import { mkdtemp, realpath, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { createServer } from 'vite';
 
 // Synthetic files only: never use the checkout's .env or provider settings.
 // This checks Vite's file boundary, not the application's custom middleware.
-const root = await mkdtemp(path.join(tmpdir(), 'cmo-vite-security-'));
+// CI can expose TEMP via an 8.3 alias (for example RUNNER~1). Vite correctly
+// rejects those aliases, so use the real directory for the public-file control.
+const root = await realpath(await mkdtemp(path.join(tmpdir(), 'cmo-vite-security-')));
 const marker = 'CMO_SYNTHETIC_PRIVATE_FILE_MARKER';
 await writeFile(path.join(root, '.env'), `SYNTHETIC_VALUE=${marker}\n`);
 await writeFile(path.join(root, 'tls.pem'), `${marker}\n`);
