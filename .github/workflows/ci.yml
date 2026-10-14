@@ -56,7 +56,7 @@ jobs:
       - run: node tools/verify-command-boundaries.mjs
       - run: node tools/verify-lua-safety-contract.mjs
       - run: node tools/verify-desktop.mjs
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/setup-dotnet@v6
         with:
           dotnet-version: '8.0.x'
       - run: powershell -NoProfile -ExecutionPolicy Bypass -File tools/desktop.ps1 -Action smoke
